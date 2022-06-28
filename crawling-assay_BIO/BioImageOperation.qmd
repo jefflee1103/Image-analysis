@@ -1,0 +1,334 @@
+---
+title: "BioImageOperation"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+Analysis QMD for BioImageOperation output used in the larval crawling assay
+
+## Environment
+
+```{r}
+library(tidyverse)
+library(trajr)
+library(qs)
+library(skimr)
+library(furrr)
+plan(multisession, workers = 4)
+
+library(rstatix)
+library(ggbeeswarm)
+library(hrbrthemes)
+library(patchwork)
+library(ggpubr)
+
+```
+
+## Prepare Analysis Dataframe
+
+### Import raw 'Tracks' data 
+
+```{r}
+bio_output_dir <- "/Volumes/LaCie/Crawling_Assay_Automated/Results"
+bio_outputs <- list.files(bio_output_dir, pattern = ".csv", full.names = TRUE)
+
+bio_raw <- future_map_dfr(bio_outputs, function(x){
+  filename <- basename(x)
+  tracks <- read_csv(x) %>%
+    mutate(filename = filename)
+}) %>%
+  mutate(larva_id = paste0(str_remove(filename, ".csv"), "_larva_", track_label))
+
+qsave(bio_raw %>% dplyr::select(-contour), "./bio_raw.qs")
+
+bio_raw <- qread("./bio_raw.qs")
+
+```
+
+### Filter for high confidence larvae
+
+```{r}
+## Filter for those tracked in the first 5 seconds 
+candidate_larvae1 <- bio_raw %>%
+  filter(time < 5) %>%
+  group_by(larva_id) %>%
+  summarise(frequency = n()) %>%
+  mutate(mean_frequency = mean(frequency)) %>%
+  filter(frequency >= mean_frequency) %>%
+  ungroup() %>%
+  pull(larva_id)
+
+# ## Filter for those that are flash-larvae
+# candidate_larvae2 <- bio_raw %>%
+#   filter(larva_id %in% candidate_larvae1) %>%
+#   arrange(larva_id, time) %>%
+#   group_by(larva_id) %>%
+#   filter(cumsum(v >= 150) < 1) %>%
+#   ungroup() %>%
+#   pull(larva_id) %>% unique()
+
+## Take at most centre n number of larvae
+centre_x <- 400
+centre_y <- 360
+max_number_of_larvae <- 5
+
+candidate_larvae3 <- bio_raw %>%
+  filter(larva_id %in% candidate_larvae1) %>%
+  filter(frame == 2) %>%
+  mutate(dist_from_centre = (centre_x - x)^2 + (centre_y - y)^2) %>%
+  group_by(filename) %>%
+  slice_min(dist_from_centre, n = max_number_of_larvae) %>%
+  ungroup() %>%
+  pull(larva_id) %>% unique()
+
+## Filter for those tracked for at least 2 seconds (e.g. 60 frames for 30 fps)
+candidate_larvae4 <- bio_raw %>%
+  filter(larva_id %in% candidate_larvae3) %>%
+  group_by(larva_id) %>%
+  summarise(frames = n()) %>%
+  ungroup() %>%
+  filter(frames >= 1000) %>%
+  pull(larva_id) %>% unique() 
+
+## Filter for abrupt decrease in area (removes the ones kept tracked even when the animal reaches the edge)
+min_area_threshold <- 75 
+candidate_larvae5 <- bio_raw %>%
+  filter(larva_id %in% candidate_larvae4) %>%
+  arrange(larva_id, time) %>%
+  group_by(larva_id) %>%
+  filter(cumsum(area <= min_area_threshold) < 1) %>%
+  ungroup() %>%
+  pull(larva_id) %>% unique()
+
+## Get confidence filtered dataframe
+bio_confident <- bio_raw %>%
+  filter(larva_id %in% candidate_larvae5)
+
+## Check how many confident larvae were tracked per video 
+bio_confident %>%
+  group_by(filename) %>%
+  summarise(n = length(unique(track_label))) -> tmp1
+
+```
+
+```{r}
+bio_filt_legacy <- future_map_dfr(bio_outputs, function(x){
+  filename <- basename(x)
+  tracks <- read_csv(x) %>% mutate(filename = filename)
+  
+  first_five_seconds <- tracks %>%
+    filter(time < 5) %>%
+    group_by(track_label) %>%
+    summarise(frequency = n()) %>%
+    ungroup() %>%
+    mutate(mean_frequency = mean(frequency))
+  
+  candidate_labels <- first_five_seconds %>%
+    filter(frequency >= mean_frequency) %>% 
+    pull(track_label)
+  
+  tracks_candidate <- tracks %>%
+    filter(track_label %in% candidate_labels) %>%
+    arrange(track_label, time) %>%
+    group_by(track_label) %>%
+    filter(cumsum(a >= 150) < 2) %>% 
+    ungroup()
+
+  centre_labels <- tracks_candidate %>%
+    filter(frame == 2) %>%
+    mutate(distance_from_centre = (centre_x - x)^2 + (centre_y - y)^2) %>%
+    slice_min(distance_from_centre, n = 5) %>%
+    pull(track_label)
+  
+  tracks_confident <- tracks_candidate %>%
+    filter(track_label %in% centre_labels) 
+  
+  usable_labels <- tracks_confident %>%
+    group_by(track_label) %>%
+    summarise(frames = n()) %>%
+    filter(frames >= 60) %>% pull(track_label)
+  
+  tracks_confident <- tracks_confident %>%
+    filter(track_label %in% usable_labels) %>% 
+    return()
+}) 
+
+qsave(bio_filt_legacy, "./bio_filt_legacy_20220627.qs")
+bio_filt_legacy <- qread("./bio_filt_legacy_20220627.qs")
+
+```
+
+
+
+### 
+
+```{r}
+perform_analysis <- function(x){
+  tracks_confident <- x
+  
+  mean_speed <- tracks_confident %>%
+    filter(!is_merged == TRUE) %>%
+  group_by(genotype, larva_id) %>%
+  slice_max(dist_tot) %>%
+  slice_max(time) %>%
+  ungroup() %>%
+  mutate(mean_speed = dist_tot/time) %>%
+  dplyr::select(genotype, larva_id, mean_speed)
+  
+  index_straightness <- tracks_confident %>%
+  group_by(genotype, larva_id) %>%
+  filter(!is_merged == TRUE) %>%
+  slice_max(dist_tot) %>%
+  ungroup() %>%
+  mutate(index_straightness = dist_origin/dist_tot) %>%
+  dplyr::select(genotype, larva_id, index_straightness)
+  
+  get_trajDC <- function(x, y, time){
+    tibble(x = x,
+           y = y,
+           time = time) %>%
+      TrajFromCoords() %>%
+      TrajSmoothSG(p = 1, n = 3) %>%
+      TrajDirectionalChange() %>% 
+      mean()
+  }
+  get_trajSDDC <- function(x, y, time){
+    tibble(x = x,
+           y = y,
+           time = time) %>%
+      TrajFromCoords() %>%
+      TrajSmoothSG(p = 1, n = 3) %>%
+      TrajDirectionalChange() %>% 
+      sd()
+  }
+  
+  DC <- tracks_confident %>%
+    group_by(genotype, larva_id) %>%
+    summarise(DC = get_trajDC(x, y, time),
+              SDDC = get_trajSDDC(x, y, time))
+  
+  output <- full_join(mean_speed, index_straightness, by = c("genotype", "larva_id")) %>%
+    full_join(DC, by = c("genotype", "larva_id")) %>%
+    return()
+}
+
+bio_confident_anno <- bio_confident %>%
+  mutate(larva_id = paste0(str_remove(filename, ".csv"), "_larva_", track_label)) %>%
+  mutate(genotype = case_when(
+    str_detect(larva_id, "Mdr") & str_detect(larva_id, "control") ~ "Mdr control",
+    str_detect(larva_id, "Mdr") & str_detect(larva_id, "GD") ~ "Mdr lac RNAi GD",
+    str_detect(larva_id, "Mdr") & str_detect(larva_id, "KK") ~ "Mdr lac RNAi KK",
+    str_detect(larva_id, "Repo") & str_detect(larva_id, "control") ~ "Repo control",
+    str_detect(larva_id, "Repo") & str_detect(larva_id, "GD") ~ "Repo lac RNAi GD",
+    str_detect(larva_id, "Repo") & str_detect(larva_id, "KK") ~ "Repo lac RNAi KK",
+  )) %>%
+  mutate(replicate = str_extract(larva_id, "\\d"))
+
+bio_summary <- perform_analysis(bio_confident_anno) %>% 
+  distinct() %>%
+  mutate(replicate = str_extract(larva_id, "\\d")) %>%
+  mutate(mean_speed_real_units = mean_speed * 85/650) %>%
+  filter(mean_speed_real_units <= 4)
+
+bio_summary %>%
+  group_by(genotype) %>%
+  summarise(n = n()) %>% 
+  arrange(desc(n))
+
+```
+
+
+```{r}
+bio_summary %>%
+  group_by(genotype) %>% 
+  shapiro_test(mean_speed_real_units) %>%
+  add_significance()
+
+bio_summary %>% 
+  dunn_test(mean_speed_real_units ~ genotype) %>%
+  add_significance() %>% as_tibble() -> tmp
+
+stat_comparisons <- list(
+  c("Mdr control", "Mdr lac RNAi GD"),
+  c("Mdr control", "Mdr lac RNAi KK"),
+  c("Repo control", "Repo lac RNAi GD"),
+  c("Repo control", "Mdr control")
+)
+
+bio_summary %>%
+  ggplot(aes(x = genotype, y = SDDC, fill = genotype)) + 
+  geom_boxplot(width = 0.3, size = 0.4, alpha = 0.9, outlier.size = 0, outlier.stroke = 0) +
+  geom_quasirandom(alpha = 0.5, size = 1.75, stroke = 0) +
+  scale_fill_ipsum() +
+  scale_colour_ipsum() + 
+  labs(title = "Crawling speed",
+       x = "",
+       y = "Average speed (mm/s)") +
+  theme_classic() + 
+  # coord_cartesian(ylim = c(0, 20)) + 
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") + 
+  stat_compare_means(comparisons = stat_comparisons, method = "wilcox.test", label = "p.signif")
+
+## Track plot
+bio_confident_anno %>%
+  filter(genotype == "Mdr lac RNAi KK") %>%
+  ggplot(aes(x = x, y = y, colour = time)) +
+  geom_point(size = 0.5, alpha = 0.5) + 
+  scale_colour_viridis_c()
+
+```
+
+```{r}
+things_to_plot <- c("mean_speed_real_units", "index_straightness", "DC", "SDDC") %>% set_names()
+
+pdf("./plot_20220628.pdf", width = 7, height = 5)
+map(things_to_plot, ~ bio_summary %>%
+  ggplot(aes_string(x = "genotype", y = .x, fill = "genotype")) + 
+  geom_boxplot(width = 0.3, size = 0.4, alpha = 0.9, outlier.size = 0, outlier.stroke = 0) +
+  geom_quasirandom(alpha = 0.5, size = 1.75, stroke = 0) +
+  scale_fill_ipsum() +
+  scale_colour_ipsum() + 
+  labs(title = .x,
+       x = "",
+       y = "Measure") +
+  theme_classic() + 
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") + 
+  stat_compare_means(comparisons = stat_comparisons, method = "wilcox.test", label = "p.signif"))
+dev.off()
+
+```
+
+
+```{r}
+bio_filt_legacy_anno %>%
+  filter(filename == "Mdr_lac_KK_5_tracks.csv") %>%
+  ggplot(aes(x = time, y = area, group = larva_id)) +
+  geom_line()
+
+bio_confident_anno %>%
+  filter(genotype == "Mdr lac RNAi KK") %>%
+  ggplot(aes(x = x, y = y, colour = larva_id)) +
+  geom_point()
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
