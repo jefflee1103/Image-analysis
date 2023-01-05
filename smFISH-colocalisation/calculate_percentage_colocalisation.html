@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-0.9.406">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>calculate_percentage_colocalisation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+<script src="calculate_percentage_colocalisation_files/libs/clipboard/clipboard.min.js"></script>
+<script src="calculate_percentage_colocalisation_files/libs/quarto-html/quarto.js"></script>
+<script src="calculate_percentage_colocalisation_files/libs/quarto-html/popper.min.js"></script>
+<script src="calculate_percentage_colocalisation_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="calculate_percentage_colocalisation_files/libs/quarto-html/anchor.min.js"></script>
+<link href="calculate_percentage_colocalisation_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link id="quarto-text-highlighting-styles" href="calculate_percentage_colocalisation_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet">
+<script src="calculate_percentage_colocalisation_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="calculate_percentage_colocalisation_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="calculate_percentage_colocalisation_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+<section id="calculate-percentage-colocalisation" class="level1">
+<h1>* * * * * Calculate Percentage colocalisation</h1>
+<section id="revised-2023.01.05" class="level2">
+<h2 class="anchored" data-anchor-id="revised-2023.01.05">Revised: 2023.01.05</h2>
+</section>
+<section id="environment" class="level2">
+<h2 class="anchored" data-anchor-id="environment">Environment</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>✔ ggplot2 3.3.6     ✔ purrr   0.3.4
+✔ tibble  3.1.7     ✔ dplyr   1.0.9
+✔ tidyr   1.2.0     ✔ stringr 1.4.0
+✔ readr   2.1.2     ✔ forcats 0.5.1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(FNN)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="get-smfish-spot-coordinates" class="level2">
+<h2 class="anchored" data-anchor-id="get-smfish-spot-coordinates">Get smFISH spot coordinates</h2>
+<p>Wrangle so that column names are [filename, x, y, z]</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Get directory with bigfish coord outputs</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>dir <span class="ot">&lt;-</span> <span class="st">"~/Desktop/rab11_odd_even_probes_FNN"</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Import csv as a list and change column names</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>files <span class="ot">&lt;-</span> <span class="fu">list.files</span>(dir, <span class="at">pattern =</span> <span class="st">"*.csv"</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">set_names</span>(<span class="fu">basename</span>(.))</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>coord_raw <span class="ot">&lt;-</span> <span class="fu">map</span>(files, read_csv) <span class="sc">%&gt;%</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">imap_dfr</span>(<span class="sc">~</span> dplyr<span class="sc">::</span><span class="fu">select</span>(.x, <span class="fu">c</span>(x, y, z)), <span class="at">.id =</span> <span class="st">"filename"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 4019 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 5360 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2513 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4928 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4016 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2591 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4585 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 1470 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 5444 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2913 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4032 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 5160 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 7290 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4282 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4078 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4089 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2063 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2369 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 5372 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 3166 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 3713 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4550 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 7139 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 3976 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4232 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4155 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2290 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2432 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 4013 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 5715 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2400 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 5188 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 3766 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 2353 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 5105 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+Rows: 1336 Columns: 4
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+dbl (4): z, y, x, f
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Create a tidy dataframe with group/channel information</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>coord_cleaned <span class="ot">&lt;-</span> coord_raw <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">channel =</span> <span class="fu">case_when</span>(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(filename, <span class="st">"even"</span>) <span class="sc">~</span> <span class="st">"even"</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">str_detect</span>(filename, <span class="st">"odd"</span>) <span class="sc">~</span> <span class="st">"odd"</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  )) <span class="sc">%&gt;%</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">str_replace</span>(filename, <span class="st">"even[:digit:]{3,}|odd[:digit:]{3,}"</span>, <span class="st">""</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="convert-voxels-to-nanometer-distances" class="level2">
+<h2 class="anchored" data-anchor-id="convert-voxels-to-nanometer-distances">Convert voxels to nanometer distances</h2>
+<p>If the xyz coordinates are already in nanometeres, put 1 for pixel sizes</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>xy_pixel_size <span class="ot">&lt;-</span> <span class="dv">65</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>z_pixel_size <span class="ot">&lt;-</span> <span class="dv">230</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>coord_df <span class="ot">&lt;-</span> coord_cleaned <span class="sc">%&gt;%</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">x_nm =</span> x <span class="sc">*</span> xy_pixel_size,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">y_nm =</span> y <span class="sc">*</span> xy_pixel_size,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">z_nm =</span> z <span class="sc">*</span> z_pixel_size</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="get-nearest-neighbour-distances" class="level2">
+<h2 class="anchored" data-anchor-id="get-nearest-neighbour-distances">Get nearest neighbour distances</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>nn_dist_df <span class="ot">&lt;-</span> <span class="fu">unique</span>(coord_df<span class="sc">$</span>group) <span class="sc">%&gt;%</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_names</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map_dfr</span>(<span class="cf">function</span>(gr){</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    odd_spots <span class="ot">&lt;-</span> <span class="fu">filter</span>(coord_df, group <span class="sc">==</span> gr <span class="sc">&amp;</span> channel <span class="sc">==</span> <span class="st">"odd"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="fu">c</span>(x_nm, y_nm, z_nm))</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    even_spots <span class="ot">&lt;-</span> <span class="fu">filter</span>(coord_df, group <span class="sc">==</span> gr <span class="sc">&amp;</span> channel <span class="sc">==</span> <span class="st">"even"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="fu">c</span>(x_nm, y_nm, z_nm))</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    nn_dist_odd_even <span class="ot">&lt;-</span> <span class="fu">get.knnx</span>(odd_spots, even_spots, <span class="at">k =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">pluck</span>(<span class="st">"nn.dist"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">as.vector</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">as_tibble_col</span>(<span class="at">column_name =</span> <span class="st">"nn_dist"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">direction =</span> <span class="st">"odd-to-even"</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    nn_dist_even_odd <span class="ot">&lt;-</span> <span class="fu">get.knnx</span>(even_spots, odd_spots, <span class="at">k =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">pluck</span>(<span class="st">"nn.dist"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">as.vector</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>      <span class="fu">as_tibble_col</span>(<span class="at">column_name =</span> <span class="st">"nn_dist"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">direction =</span> <span class="st">"even-to-odd"</span>)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    output <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(nn_dist_odd_even, nn_dist_even_odd) <span class="sc">%&gt;%</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">group =</span> gr)</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>  })</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="inspect-distribution-of-nn-distances" class="level2">
+<h2 class="anchored" data-anchor-id="inspect-distribution-of-nn-distances">Inspect distribution of nn distances</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>cutoff_df <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">threshold =</span> <span class="fu">c</span>(<span class="dv">200</span>, <span class="dv">300</span>, <span class="dv">400</span>))</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> nn_dist_df,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> nn_dist),</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">colour =</span> <span class="st">"coral"</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="dv">1</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> cutoff_df,</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">xintercept =</span> threshold),</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">linetype =</span> <span class="st">"dashed"</span>, </span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="fl">0.5</span>,</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.5</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> cutoff_df,</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> threshold <span class="sc">+</span> <span class="dv">10</span>, <span class="at">y =</span> <span class="dv">0</span>, <span class="at">label =</span> threshold)</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Nearest neighbour distance (nm)"</span>, <span class="at">y =</span> <span class="st">"Density"</span>) <span class="sc">+</span> </span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="calculate_percentage_colocalisation_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="get-summary-metrics" class="level2">
+<h2 class="anchored" data-anchor-id="get-summary-metrics">Get summary metrics</h2>
+<p>Set cutoff in 250-350 nm range</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Set cutoff</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>cutoff <span class="ot">&lt;-</span> <span class="dv">300</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="do">## Calculate percentage of colocalised spots (per group and direction)</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>nn_dist_summary <span class="ot">&lt;-</span> nn_dist_df <span class="sc">%&gt;%</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(group, direction) <span class="sc">%&gt;%</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_coloc =</span> (<span class="fu">sum</span>(nn_dist <span class="sc">&lt;=</span> cutoff) <span class="sc">/</span> <span class="fu">n</span>()) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">spot_count =</span> <span class="fu">n</span>()</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'group'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>nn_dist_summary</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 20 × 4
+# Groups:   group [10]
+   group                       direction   pct_coloc spot_count
+   &lt;chr&gt;                       &lt;chr&gt;           &lt;dbl&gt;      &lt;int&gt;
+ 1 BIGFISH_231222_rab11_1.csv  even-to-odd      83.3       9385
+ 2 BIGFISH_231222_rab11_1.csv  odd-to-even      80.0       9463
+ 3 BIGFISH_231222_rab11_10.csv even-to-odd      75.5       3166
+ 4 BIGFISH_231222_rab11_10.csv odd-to-even      74.8       2913
+ 5 BIGFISH_231222_rab11_2.csv  even-to-odd      81.4       9428
+ 6 BIGFISH_231222_rab11_2.csv  odd-to-even      78.1       9392
+ 7 BIGFISH_231222_rab11_3.csv  even-to-odd      90.1       6950
+ 8 BIGFISH_231222_rab11_3.csv  odd-to-even      77.1       7673
+ 9 BIGFISH_231222_rab11_4.csv  even-to-odd      83.5      12327
+10 BIGFISH_231222_rab11_4.csv  odd-to-even      78.6      12218
+11 BIGFISH_231222_rab11_5.csv  even-to-odd      86.9       7742
+12 BIGFISH_231222_rab11_5.csv  odd-to-even      77.8       8298
+13 BIGFISH_231222_rab11_6.csv  even-to-odd      85.1       6585
+14 BIGFISH_231222_rab11_6.csv  odd-to-even      79.2       6669
+15 BIGFISH_231222_rab11_7.csv  even-to-odd      80.4       9260
+16 BIGFISH_231222_rab11_7.csv  odd-to-even      76.4       8674
+17 BIGFISH_231222_rab11_8.csv  even-to-odd      79.0       3626
+18 BIGFISH_231222_rab11_8.csv  odd-to-even      73.9       3533
+19 BIGFISH_231222_rab11_9.csv  even-to-odd      79.7       2432
+20 BIGFISH_231222_rab11_9.csv  odd-to-even      71.8       2369</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>nn_dist_summary_label <span class="ot">&lt;-</span> nn_dist_summary <span class="sc">%&gt;%</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(direction) <span class="sc">%&gt;%</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">avg_pct_coloc =</span> <span class="fu">mean</span>(pct_coloc))</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>nn_dist_summary_label</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 2
+  direction   avg_pct_coloc
+  &lt;chr&gt;               &lt;dbl&gt;
+1 even-to-odd          82.5
+2 odd-to-even          76.8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Summary plot</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>nn_dist_summary <span class="sc">%&gt;%</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> direction, <span class="at">y =</span> pct_coloc)) <span class="sc">+</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="at">width =</span> <span class="fl">0.15</span>, <span class="at">colour =</span> <span class="st">"gray60"</span>) <span class="sc">+</span> </span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_label</span>(</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> nn_dist_summary_label,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> direction, <span class="at">y =</span> avg_pct_coloc, <span class="at">label =</span> <span class="fu">paste0</span>(<span class="fu">round</span>(avg_pct_coloc, <span class="dv">1</span>), <span class="st">"%"</span>)),</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">position_nudge</span>(<span class="at">x =</span> <span class="fl">0.2</span>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">position =</span> <span class="fu">position_jitter</span>(<span class="at">width =</span> <span class="fl">0.07</span>), <span class="at">size =</span> <span class="dv">3</span>, <span class="at">colour =</span> <span class="st">"coral"</span>) <span class="sc">+</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">100</span>)) <span class="sc">+</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Query direction"</span>, <span class="at">y =</span> <span class="fu">paste0</span>(<span class="st">"Percent colocalised (&lt;"</span>, cutoff,<span class="st">" nm)"</span>)) <span class="sc">+</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="calculate_percentage_colocalisation_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

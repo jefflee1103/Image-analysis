@@ -1,0 +1,154 @@
+# * * * * * Calculate Percentage colocalisation
+## Revised: 2023.01.05
+
+## Environment
+
+```{r}
+library(tidyverse)
+library(FNN)
+```
+
+## Get smFISH spot coordinates
+
+Wrangle so that column names are [filename, x, y, z] 
+
+```{r}
+## Get directory with bigfish coord outputs
+dir <- "~/Desktop/rab11_odd_even_probes_FNN"
+
+## Import csv as a list and change column names
+files <- list.files(dir, pattern = "*.csv", full.names = TRUE) %>% set_names(basename(.))
+coord_raw <- map(files, read_csv) %>%
+  imap_dfr(~ dplyr::select(.x, c(x, y, z)), .id = "filename")
+
+## Create a tidy dataframe with group/channel information
+coord_cleaned <- coord_raw %>%
+  mutate(channel = case_when(
+    str_detect(filename, "even") ~ "even",
+    str_detect(filename, "odd") ~ "odd"
+  )) %>%
+  mutate(group = str_replace(filename, "even[:digit:]{3,}|odd[:digit:]{3,}", ""))
+
+```
+
+## Convert voxels to nanometer distances
+
+If the xyz coordinates are already in nanometeres, put 1 for pixel sizes
+```{r}
+xy_pixel_size <- 65
+z_pixel_size <- 230
+
+coord_df <- coord_cleaned %>%
+  mutate(
+    x_nm = x * xy_pixel_size,
+    y_nm = y * xy_pixel_size,
+    z_nm = z * z_pixel_size
+    )
+
+```
+
+## Get nearest neighbour distances 
+
+```{r}
+nn_dist_df <- unique(coord_df$group) %>%
+  set_names() %>%
+  map_dfr(function(gr){
+    odd_spots <- filter(coord_df, group == gr & channel == "odd") %>%
+      dplyr::select(c(x_nm, y_nm, z_nm))
+    even_spots <- filter(coord_df, group == gr & channel == "even") %>%
+      dplyr::select(c(x_nm, y_nm, z_nm))
+    
+    nn_dist_odd_even <- get.knnx(odd_spots, even_spots, k = 1) %>%
+      pluck("nn.dist") %>%
+      as.vector() %>%
+      as_tibble_col(column_name = "nn_dist") %>%
+      mutate(direction = "odd-to-even")
+
+    nn_dist_even_odd <- get.knnx(even_spots, odd_spots, k = 1) %>%
+      pluck("nn.dist") %>%
+      as.vector() %>%
+      as_tibble_col(column_name = "nn_dist") %>%
+      mutate(direction = "even-to-odd")
+
+    output <- bind_rows(nn_dist_odd_even, nn_dist_even_odd) %>%
+      mutate(group = gr)
+  })
+
+```
+
+
+## Inspect distribution of nn distances
+
+```{r}
+cutoff_df <- tibble(threshold = c(200, 300, 400))
+
+ggplot() +
+  geom_density(
+    data = nn_dist_df,
+    aes(x = nn_dist),
+    colour = "coral",
+    size = 1
+  ) +
+  geom_vline(
+    data = cutoff_df,
+    aes(xintercept = threshold),
+    linetype = "dashed", 
+    size = 0.5,
+    alpha = 0.5
+  ) +
+  geom_text(
+    data = cutoff_df,
+    aes(x = threshold + 10, y = 0, label = threshold)
+  ) +
+  labs(x = "Nearest neighbour distance (nm)", y = "Density") + 
+  theme_classic()
+
+```
+
+## Get summary metrics
+
+Set cutoff in 250-350 nm range
+
+```{r}
+## Set cutoff
+cutoff <- 300
+
+## Calculate percentage of colocalised spots (per group and direction)
+nn_dist_summary <- nn_dist_df %>%
+  group_by(group, direction) %>%
+  summarise(
+    pct_coloc = (sum(nn_dist <= cutoff) / n()) * 100,
+    spot_count = n()
+  )
+
+nn_dist_summary
+
+nn_dist_summary_label <- nn_dist_summary %>%
+  group_by(direction) %>%
+  summarise(avg_pct_coloc = mean(pct_coloc))
+
+nn_dist_summary_label
+
+## Summary plot
+nn_dist_summary %>%
+  ggplot(aes(x = direction, y = pct_coloc)) +
+  geom_boxplot(width = 0.15, colour = "gray60") + 
+  geom_label(
+    data = nn_dist_summary_label,
+    aes(x = direction, y = avg_pct_coloc, label = paste0(round(avg_pct_coloc, 1), "%")),
+    position = position_nudge(x = 0.2)
+  ) +
+  geom_point(position = position_jitter(width = 0.07), size = 3, colour = "coral") +
+  coord_cartesian(ylim = c(0, 100)) +
+  labs(x = "Query direction", y = paste0("Percent colocalised (<", cutoff," nm)")) +
+  theme_classic() 
+  
+  
+
+
+```
+
+
+
+
+
