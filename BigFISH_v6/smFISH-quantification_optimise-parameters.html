@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-0.9.406">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>smfish-quantification_optimise-parameters</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+<script src="smFISH-quantification_optimise-parameters_files/libs/clipboard/clipboard.min.js"></script>
+<script src="smFISH-quantification_optimise-parameters_files/libs/quarto-html/quarto.js"></script>
+<script src="smFISH-quantification_optimise-parameters_files/libs/quarto-html/popper.min.js"></script>
+<script src="smFISH-quantification_optimise-parameters_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="smFISH-quantification_optimise-parameters_files/libs/quarto-html/anchor.min.js"></script>
+<link href="smFISH-quantification_optimise-parameters_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link id="quarto-text-highlighting-styles" href="smFISH-quantification_optimise-parameters_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet">
+<script src="smFISH-quantification_optimise-parameters_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="smFISH-quantification_optimise-parameters_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="smFISH-quantification_optimise-parameters_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+<section id="notebook-for-optimising-smfish-analysis-parameters" class="level1">
+<h1>Notebook for optimising smFISH analysis parameters</h1>
+<section id="using-big-fish-v0.6" class="level2">
+<h2 class="anchored" data-anchor-id="using-big-fish-v0.6">Using Big-fish v0.6</h2>
+</section>
+<section id="revised-2023.02.20" class="level2">
+<h2 class="anchored" data-anchor-id="revised-2023.02.20">Revised: 2023.02.20</h2>
+<ol type="1">
+<li>Optimise Bigfish parameters for a single image</li>
+<li>The set parameters should then be used for batch processing</li>
+</ol>
+<div class="cell" data-tags="[]" data-execution_count="61">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> skimage.morphology <span class="im">import</span> white_tophat, black_tophat, disk</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> ndimage, misc</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tifffile</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pathlib</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> PIL <span class="im">import</span> Image</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bigfish</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bigfish.stack <span class="im">as</span> stack</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bigfish.multistack <span class="im">as</span> multistack </span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bigfish.segmentation <span class="im">as</span> segmentation</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bigfish.plot <span class="im">as</span> plot</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bigfish.detection <span class="im">as</span> detection</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Big-FISH version: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(bigfish.__version__))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Big-FISH version: 0.6.2</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="load-bigfish-helper-functions" class="level1">
+<h1>0. Load Bigfish helper functions</h1>
+<div class="cell" data-execution_count="62">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Calculate PSF (thanks MK!!)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calculate_psf(voxel_size_z, voxel_size_yx, Ex, Em, NA, RI, microscope):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> microscope <span class="op">==</span> <span class="st">'widefield'</span>:</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        psf_yx <span class="op">=</span> <span class="fl">0.225</span><span class="op">*</span>Em<span class="op">/</span>NA</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        psf_z <span class="op">=</span> <span class="fl">0.78</span><span class="op">*</span>RI<span class="op">*</span>Em<span class="op">/</span>(NA<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> microscope <span class="kw">in</span> {<span class="st">'confocal'</span>, <span class="st">'nipkow'</span>}:</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        psf_yx <span class="op">=</span> <span class="fl">0.225</span><span class="op">/</span>NA<span class="op">*</span>Ex<span class="op">*</span>Em<span class="op">/</span>np.sqrt(Ex<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> Em<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        psf_z <span class="op">=</span> <span class="fl">0.78</span><span class="op">*</span>RI<span class="op">/</span>NA<span class="op">**</span><span class="dv">2</span><span class="op">*</span>Ex<span class="op">*</span>Em<span class="op">/</span>np.sqrt(Ex<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> Em<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f'microscope=</span><span class="sc">{</span>microscope<span class="sc">}</span><span class="ss"> is not a valid option'</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        sys.exit()</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> psf_z, psf_yx</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co">## Subtract background</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> subtract_background(image, radius<span class="op">=</span><span class="dv">5</span>, light_bg<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    str_el <span class="op">=</span> disk(radius) <span class="co">#you can also use 'ball' here to get a slightly smoother result at the cost of increased computing time</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> light_bg:</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> black_tophat(image, str_el)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> white_tophat(image, str_el)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="import-image-and-its-metadata" class="level1">
+<h1>1. Import image and its metadata</h1>
+<div class="cell" data-execution_count="63">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Import image file</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>file_name <span class="op">=</span> <span class="st">'/Users/jefflee/Desktop/FISH-01_4h_17_bsub50.tif'</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>img <span class="op">=</span> tifffile.imread(file_name)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Image imported: "</span>, file_name)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(img.shape))</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(img.dtype))</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Set up image acquisition parameters</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>chan <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>voxel_size_z <span class="op">=</span> <span class="dv">200</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>voxel_size_yx <span class="op">=</span> <span class="dv">65</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>Ex <span class="op">=</span> <span class="dv">570</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>Em <span class="op">=</span> <span class="dv">610</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>NA <span class="op">=</span> <span class="fl">1.45</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>RI <span class="op">=</span> <span class="fl">1.45</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>microscope <span class="op">=</span> <span class="st">'confocal'</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>psf_z <span class="op">=</span> calculate_psf(voxel_size_z, voxel_size_yx, Ex, Em, NA, RI, microscope)[<span class="dv">0</span>]</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>psf_yx <span class="op">=</span> calculate_psf(voxel_size_z, voxel_size_yx, Ex, Em, NA, RI, microscope)[<span class="dv">1</span>]</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>spot_radius_px <span class="op">=</span> detection.get_object_radius_pixel(</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    voxel_size_nm<span class="op">=</span>(voxel_size_z, voxel_size_yx, voxel_size_yx), </span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    object_radius_nm<span class="op">=</span>(psf_z, psf_yx, psf_yx), </span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    ndim <span class="op">=</span> <span class="dv">3</span>)</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">" "</span>)</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"PSF and Sigma calculation finished"</span>)</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> theoretical psf_z = "</span>, psf_z)</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> theoretical psf_yx = "</span>, psf_yx)</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> spot radius (sigma_z) (z axis): </span><span class="sc">{:0.3f}</span><span class="st"> pixels"</span>.<span class="bu">format</span>(spot_radius_px[<span class="dv">0</span>]))</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> spot radius (sigma_yx) (yx plan): </span><span class="sc">{:0.3f}</span><span class="st"> pixels"</span>.<span class="bu">format</span>(spot_radius_px[<span class="op">-</span><span class="dv">1</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Image imported:  /Users/jefflee/Desktop/FISH-01_4h_17_bsub50.tif
+ shape: (33, 4, 2048, 2048)
+ dtype: uint16
+ 
+PSF and Sigma calculation finished
+ theoretical psf_z =  224.03449989716577
+ theoretical psf_yx =  64.62533650879783
+ spot radius (sigma_z) (z axis): 1.120 pixels
+ spot radius (sigma_yx) (yx plan): 0.994 pixels</code></pre>
+</div>
+</div>
+</section>
+<section id="optimise-bigfish-parameters" class="level1">
+<h1>2. Optimise bigfish parameters</h1>
+<section id="get-log-filtred-rna-channel-image-for-pre-detection-thresholding" class="level2">
+<h2 class="anchored" data-anchor-id="get-log-filtred-rna-channel-image-for-pre-detection-thresholding">2-1. Get LoG filtred RNA channel image for pre-detection thresholding</h2>
+<div class="cell" data-execution_count="64">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Background subtract RNA image and LoG filter</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>start_time <span class="op">=</span> time.time()</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Channel subset original image</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>rna <span class="op">=</span> np.swapaxes(img,<span class="dv">0</span>,<span class="dv">1</span>)[chan]</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Image shape "</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(rna.shape))</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(rna.dtype))</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co"># MIP image for plotting later or for 2D detection</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>rna_mip <span class="op">=</span> stack.maximum_projection(rna)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Background subtract</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>rna_no_bg <span class="op">=</span> []</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> z <span class="kw">in</span> rna:</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    z_no_bg <span class="op">=</span> subtract_background(z)</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    rna_no_bg.append(z_no_bg)</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>rna <span class="op">=</span> np.array(rna_no_bg)</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"Background subtraction finished "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="co"># LoG filter</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>rna_log <span class="op">=</span> stack.log_filter(rna, sigma <span class="op">=</span> spot_radius_px)</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"LoG filter finished "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Export LoG filtered image to the working directory</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>rna_log_max <span class="op">=</span> np.<span class="bu">max</span>(rna_log, <span class="dv">0</span>)</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>Image.fromarray(rna_log_max).save(<span class="st">'rna_log.tif'</span>)</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"Image saved to working dir! Open it on ImageJ! "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Image shape 
+ shape: (33, 2048, 2048)
+ dtype: uint16
+Background subtraction finished  13.737228870391846 sec
+LoG filter finished  52.1925630569458 sec
+Image saved to working dir! Open it on ImageJ!  52.36540603637695 sec</code></pre>
+</div>
+</div>
+</section>
+<section id="optimise-single-spot-detection" class="level2">
+<h2 class="anchored" data-anchor-id="optimise-single-spot-detection">2-2 Optimise single-spot detection</h2>
+<section id="option-1---manual-thresholding" class="level3">
+<h3 class="anchored" data-anchor-id="option-1---manual-thresholding">Option 1 - Manual thresholding</h3>
+<div class="cell" data-execution_count="65">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>start_time <span class="op">=</span> time.time()</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">## local maximum detection</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> detection.local_maximum_detection(rna_log, min_distance <span class="op">=</span> spot_radius_px)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'pre-detection done'</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">## thresholding</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>threshold <span class="op">=</span> <span class="dv">8</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>spots, _ <span class="op">=</span> detection.spots_thresholding(rna_log, mask, threshold)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'threshold done'</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"detected spots"</span>)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots.shape))</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots.dtype))</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> threshold: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(threshold))</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">## Plot detected spots</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>plot.plot_detection(rna_mip, spots, radius <span class="op">=</span> <span class="dv">3</span>, framesize <span class="op">=</span> (<span class="dv">20</span>, <span class="dv">16</span>), contrast <span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"Plotting done "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>pre-detection done
+threshold done 8.13402009010315 sec
+detected spots
+ shape: (2398, 3)
+ dtype: int64
+ threshold: 8</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-6-output-2.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Plotting done  14.88615107536316 sec</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="66">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># z, y, x</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(spots)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[   2    0    0]
+ [   2 1258  710]
+ [   4  759  965]
+ ...
+ [  30 1190 1053]
+ [  31  141  347]
+ [  32    0    0]]</code></pre>
+</div>
+</div>
+</section>
+<section id="option-2---auto-thresholding" class="level3">
+<h3 class="anchored" data-anchor-id="option-2---auto-thresholding">Option 2 - Auto-thresholding</h3>
+<div class="cell" data-execution_count="67">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>start_time <span class="op">=</span> time.time()</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">## Get Elbow plot</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>plot.plot_elbow(</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    rna,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    voxel_size <span class="op">=</span> (voxel_size_z, voxel_size_yx, voxel_size_yx),</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    spot_radius <span class="op">=</span> (psf_z, psf_yx, psf_yx)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"Elbow plot done "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="co">## Get autothreshold value</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>threshold_auto <span class="op">=</span> detection.automated_threshold_setting(rna_log, mask)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Auto-threshold value found"</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> threshold: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(threshold_auto))</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="co">## thresholding (automated)</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>spots, _ <span class="op">=</span> detection.spots_thresholding(rna_log, mask, threshold_auto)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'threshold done'</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"detected spots"</span>)</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots.shape))</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots.dtype))</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> threshold: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(threshold_auto))</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="co">## Plot detected spots</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>plot.plot_detection(rna_mip, spots, radius <span class="op">=</span> <span class="dv">3</span>, framesize <span class="op">=</span> (<span class="dv">20</span>, <span class="dv">16</span>), contrast <span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"Plotting done "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-8-output-1.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Elbow plot done  80.7846782207489 sec
+Auto-threshold value found 83.2766342163086 sec
+ threshold: 8.0
+threshold done 84.63224911689758 sec
+detected spots
+ shape: (2398, 3)
+ dtype: int64
+ threshold: 8.0</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-8-output-3.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Plotting done  91.11877822875977 sec</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="quantify-dense-regions" class="level2">
+<h2 class="anchored" data-anchor-id="quantify-dense-regions">2-3. Quantify dense regions</h2>
+<section id="get-a-reference-spot" class="level3">
+<h3 class="anchored" data-anchor-id="get-a-reference-spot">2-3-1. Get a reference spot</h3>
+<div class="cell" data-execution_count="68">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>start_time <span class="op">=</span> time.time() </span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">## gaussian kernel</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>kernel_size <span class="op">=</span> detection.get_object_radius_pixel(</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    voxel_size_nm <span class="op">=</span> (voxel_size_z, voxel_size_yx, voxel_size_yx),</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    object_radius_nm <span class="op">=</span> (psf_z, psf_yx, psf_yx),</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    ndim <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>large_kernel_size <span class="op">=</span> <span class="bu">tuple</span>([kernel_size_ <span class="op">*</span> <span class="dv">5</span> <span class="cf">for</span> kernel_size_ <span class="kw">in</span> kernel_size])</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co"># denoising</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>rna_denoised <span class="op">=</span> stack.remove_background_gaussian(rna, sigma <span class="op">=</span> large_kernel_size)</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Denoising done "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="co"># reference spot from denoised </span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>reference_spot <span class="op">=</span> detection.build_reference_spot(</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    image <span class="op">=</span> rna_denoised,</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    spots <span class="op">=</span> spots,</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    voxel_size <span class="op">=</span> (voxel_size_z, voxel_size_yx, voxel_size_yx),</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    spot_radius <span class="op">=</span> (psf_z, psf_yx, psf_yx),</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    alpha <span class="op">=</span> <span class="fl">0.5</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Denoised reference spot for decompose cluster"</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(reference_spot.shape))</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(reference_spot.dtype))</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>plot.plot_reference_spot(reference_spot, rescale <span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Denoising done  18.05649471282959 sec
+Denoised reference spot for decompose cluster 18.115545749664307 sec
+ shape: (5, 5, 5)
+ dtype: uint16</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-9-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="decompose-dense-regions-with-the-reference-spot" class="level3">
+<h3 class="anchored" data-anchor-id="decompose-dense-regions-with-the-reference-spot">2-3-2. Decompose dense regions with the reference spot</h3>
+<div class="cell" data-scrolled="true" data-execution_count="69">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>start_time <span class="op">=</span> time.time() </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># fit a gaussian function on the reference spot</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>sigma_z, sigma_yx, amplitude, background <span class="op">=</span> detection.modelize_spot(</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    reference_spot <span class="op">=</span> reference_spot, </span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    voxel_size <span class="op">=</span> (voxel_size_z, voxel_size_yx, voxel_size_yx),</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    spot_radius <span class="op">=</span> (psf_z, psf_yx, psf_yx)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'fitted gaussian to ref spot'</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co"># detect potential dense regions</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>regions_to_decompose, spots_out_regions, region_size <span class="op">=</span> detection.get_dense_region(</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    image <span class="op">=</span> rna_denoised, </span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    spots <span class="op">=</span> spots,</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    voxel_size <span class="op">=</span> (voxel_size_z, voxel_size_yx, voxel_size_yx),</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    spot_radius <span class="op">=</span> (psf_z, psf_yx, psf_yx),</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    beta <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'detected potential dense regions'</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> my cluster region counts are: "</span>, <span class="bu">len</span>(regions_to_decompose))</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a><span class="co"># precompute gaussian function values</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>max_grid <span class="op">=</span> <span class="bu">max</span>(<span class="dv">200</span>, region_size <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>precomputed_gaussian <span class="op">=</span> detection.precompute_erf(</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>    ndim <span class="op">=</span> <span class="dv">3</span>,</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>    voxel_size <span class="op">=</span> (voxel_size_z, voxel_size_yx, voxel_size_yx),</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>    sigma <span class="op">=</span> (sigma_z, sigma_yx, sigma_yx),</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>    max_grid <span class="op">=</span> max_grid</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'pre-computed gaussian'</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a><span class="co"># simulate gaussian mixtures</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>spots_in_regions, _ <span class="op">=</span> detection.simulate_gaussian_mixture(</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>    image <span class="op">=</span> rna_denoised,</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>    candidate_regions <span class="op">=</span> regions_to_decompose,</span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>    voxel_size <span class="op">=</span> (voxel_size_z, voxel_size_yx, voxel_size_yx),</span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>    sigma <span class="op">=</span> (sigma_z, sigma_yx, sigma_yx),</span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>    amplitude <span class="op">=</span> amplitude,</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>    background <span class="op">=</span> background,</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>    precomputed_gaussian <span class="op">=</span> precomputed_gaussian)</span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>spots_post_decomposition <span class="op">=</span> np.concatenate((spots_out_regions, spots_in_regions[:, :<span class="dv">3</span>]), axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">'gaussian mixture simulation done'</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>, <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"detected spots before decomposition"</span>)</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots.shape))</span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots.dtype), <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"detected spots after decomposition"</span>)</span>
+<span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots_post_decomposition.shape))</span>
+<span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots_post_decomposition.dtype))</span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a>plot.plot_detection(rna_mip, spots_post_decomposition, framesize <span class="op">=</span> (<span class="dv">20</span>, <span class="dv">16</span>), contrast <span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"Plotting done "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fitted gaussian to ref spot 0.03488898277282715 sec
+detected potential dense regions 1.1992571353912354 sec
+ my cluster region counts are:  859
+pre-computed gaussian 1.21248197555542 sec
+gaussian mixture simulation done 1.4673688411712646 sec 
+
+detected spots before decomposition
+ shape: (2398, 3)
+ dtype: int64 
+
+detected spots after decomposition
+ shape: (3982, 3)
+ dtype: int64</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-10-output-2.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Plotting done  11.137903690338135 sec</code></pre>
+</div>
+</div>
+</section>
+<section id="subpixel-fitting" class="level3">
+<h3 class="anchored" data-anchor-id="subpixel-fitting">2-3-3 Subpixel fitting</h3>
+<div class="cell" data-execution_count="70">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>start_time <span class="op">=</span> time.time()</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co">## Pixel-fitted spots</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Decomposed spots (pixel fitted)"</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots_post_decomposition.shape))</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots_post_decomposition.dtype), <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(spots_post_decomposition)</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="co">## Subpixel fitting</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>spots_post_decomposition_subpixel <span class="op">=</span> detection.fit_subpixel(</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    image <span class="op">=</span> rna,</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    spots <span class="op">=</span> spots_post_decomposition,</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    voxel_size <span class="op">=</span> (voxel_size_z, voxel_size_yx, voxel_size_yx),</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    spot_radius <span class="op">=</span> (psf_z, psf_yx, psf_yx)</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">" "</span>)</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Subpixel fitting done "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>,<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"spots (subpixel fitted)"</span>)</span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots_post_decomposition_subpixel.shape))</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots_post_decomposition_subpixel.dtype), <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(spots_post_decomposition_subpixel)</span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a><span class="co">## Plot</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>plot.plot_detection(</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>    rna_mip, </span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>    spots<span class="op">=</span>[spots_post_decomposition, spots_post_decomposition_subpixel], </span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>    radius<span class="op">=</span><span class="dv">3</span>, </span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>    color<span class="op">=</span>[<span class="st">"red"</span>, <span class="st">"blue"</span>],</span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>    title<span class="op">=</span><span class="st">"Red = pixel fitting | Blue = subpixel fitting"</span>,</span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>    linewidth <span class="op">=</span> <span class="dv">1</span>, contrast <span class="op">=</span> <span class="va">True</span>, framesize <span class="op">=</span> (<span class="dv">50</span>, <span class="dv">40</span>))</span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"Plotting done "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Decomposed spots (pixel fitted)
+ shape: (3982, 3)
+ dtype: int64 
+
+[[   2    0    0]
+ [   2 1258  710]
+ [   4  759  965]
+ ...
+ [  28 1024 1051]
+ [  28 1025 1052]
+ [  28 1026 1050]]
+ 
+Subpixel fitting done  31.990918159484863 sec 
+
+spots (subpixel fitted)
+ shape: (3982, 3)
+ dtype: float64 
+
+[[   2.            0.            0.        ]
+ [   2.01673636 1258.34609842  710.65800894]
+ [   4.41564507  758.77529722  965.03882892]
+ ...
+ [  27.65259784 1024.5796702  1051.03751798]
+ [  27.59982263 1024.58314347 1051.11572293]
+ [  27.56985723 1024.4452975  1051.155685  ]]</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-11-output-2.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Plotting done  78.24052810668945 sec</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="cluster-decomposed-spots" class="level2">
+<h2 class="anchored" data-anchor-id="cluster-decomposed-spots">2-4. Cluster decomposed spots</h2>
+<p>Two spots are considered connected if they localized within a specific radius (in nanometer). Above a minimum number of connected spots, a cluster can be defined. This detection can be computed with <code>bigfish.detection.detect_clusters</code>.</p>
+<div class="cell" data-execution_count="71">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>start_time <span class="op">=</span> time.time() </span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co"># cluster decomposed spots aggregating within a defiend radius with a minumum spot number cutoff</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>radius <span class="op">=</span> <span class="dv">600</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>nb_min_spots <span class="op">=</span> <span class="dv">12</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>spots_post_clustering, clusters <span class="op">=</span> detection.detect_clusters(</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    spots <span class="op">=</span> spots_post_decomposition_subpixel, </span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    voxel_size <span class="op">=</span> (voxel_size_z, voxel_size_yx, voxel_size_yx), </span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    radius <span class="op">=</span> radius, </span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    nb_min_spots <span class="op">=</span> nb_min_spots</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"clustering done "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>, <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"detected spots after clustering"</span>)</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots_post_clustering.shape))</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(spots_post_clustering.dtype), <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"detected clusters"</span>)</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(clusters.shape))</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> dtype: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(clusters.dtype), <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(spots_post_clustering)</span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>plot.plot_detection(rna_mip, </span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>                    spots <span class="op">=</span> [spots_post_decomposition_subpixel, clusters[:, :<span class="dv">3</span>]], </span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>                    shape <span class="op">=</span> [<span class="st">"circle"</span>, <span class="st">"polygon"</span>], </span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>                    radius <span class="op">=</span> [spot_radius_px[<span class="op">-</span><span class="dv">1</span>], radius<span class="op">/</span>voxel_size_yx], </span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a>                    color <span class="op">=</span> [<span class="st">"orange"</span>, <span class="st">"cyan"</span>],</span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>                    linewidth <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>], </span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>                    fill <span class="op">=</span> [<span class="va">False</span>, <span class="va">True</span>], </span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>                    framesize <span class="op">=</span> (<span class="dv">20</span>, <span class="dv">16</span>),</span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>                    contrast <span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span> (<span class="st">"Plotting done "</span>, time.time() <span class="op">-</span> start_time, <span class="st">"sec"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>clustering done  0.04159283638000488 sec 
+
+detected spots after clustering
+ shape: (3982, 4)
+ dtype: float64 
+
+detected clusters
+ shape: (48, 5)
+ dtype: float64 
+
+[[ 2.00000000e+00  0.00000000e+00  0.00000000e+00 -1.00000000e+00]
+ [ 2.01673636e+00  1.25834610e+03  7.10658009e+02 -1.00000000e+00]
+ [ 4.41564507e+00  7.58775297e+02  9.65038829e+02 -1.00000000e+00]
+ ...
+ [ 2.76525978e+01  1.02457967e+03  1.05103752e+03 -1.00000000e+00]
+ [ 2.75998226e+01  1.02458314e+03  1.05111572e+03 -1.00000000e+00]
+ [ 2.75698572e+01  1.02444530e+03  1.05115569e+03 -1.00000000e+00]]</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-12-output-2.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Plotting done  9.887182712554932 sec</code></pre>
+</div>
+</div>
+</section>
+<section id="assign-spots-to-cells" class="level2">
+<h2 class="anchored" data-anchor-id="assign-spots-to-cells">3 Assign spots to cells</h2>
+<section id="cellpose-segmentation" class="level3">
+<h3 class="anchored" data-anchor-id="cellpose-segmentation">3-1 Cellpose segmentation</h3>
+<div class="cell" data-execution_count="72">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> cellpose <span class="im">import</span> models, io</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> cellpose <span class="im">import</span> plot <span class="im">as</span> cplot</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> ndimage, misc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="79">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># cellpose parameters </span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>seg_chan <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>med_filter_radius <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>diameter <span class="op">=</span> <span class="dv">600</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>flow_threshold <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>mask_threshold <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>do_3D <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>gpu <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>clip_intensity <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>clip_value <span class="op">=</span> <span class="dv">10</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a><span class="co"># run cellpose</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Processing: "</span>, file_name)</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>t1 <span class="op">=</span> time.time()</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>seg_img <span class="op">=</span> np.<span class="bu">max</span>(img, <span class="dv">0</span>)[seg_chan] <span class="co"># max project on the first np axis (i.e. max-z projection)</span></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> clip_intensity <span class="op">==</span> <span class="va">True</span>:</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    seg_img <span class="op">=</span> np.clip(seg_img, <span class="dv">0</span>, clip_value) <span class="co"># clip intensity if using background</span></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>seg_img <span class="op">=</span> ndimage.median_filter(seg_img, size <span class="op">=</span> med_filter_radius) <span class="co"># subset channel and median filter</span></span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> models.Cellpose(gpu<span class="op">=</span>gpu, model_type<span class="op">=</span><span class="st">'cyto'</span>)</span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>masks, flows, styles, diams <span class="op">=</span> model.<span class="bu">eval</span>(</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>    seg_img, </span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>    channels <span class="op">=</span> [<span class="dv">0</span>,<span class="dv">0</span>], </span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>    diameter <span class="op">=</span> diameter,</span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>    do_3D <span class="op">=</span> do_3D, </span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>    flow_threshold <span class="op">=</span> flow_threshold,</span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>    mask_threshold <span class="op">=</span> mask_threshold,</span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>    resample <span class="op">=</span> <span class="va">False</span>   </span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>t2 <span class="op">=</span> time.time()</span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>time_elapsed <span class="op">=</span> (t2 <span class="op">-</span> t1)</span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Cellpose done: </span><span class="sc">%s</span><span class="st"> sec'</span> <span class="op">%</span> <span class="bu">round</span>(time_elapsed,<span class="dv">1</span>))</span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect cellpose output</span></span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">5</span>))</span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>cplot.show_segmentation(fig, seg_img, masks, flows[<span class="dv">0</span>], channels<span class="op">=</span>[<span class="dv">0</span>,<span class="dv">0</span>])</span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true" tabindex="-1"></a>t3 <span class="op">=</span> time.time()</span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true" tabindex="-1"></a>time_elapsed <span class="op">=</span> (t3 <span class="op">-</span> t2) <span class="op">/</span> <span class="dv">60</span></span>
+<span id="cb28-46"><a href="#cb28-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'Plotting done: </span><span class="sc">%s</span><span class="st"> sec'</span> <span class="op">%</span> <span class="bu">round</span>(time_elapsed,<span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Processing:  /Users/jefflee/Desktop/FISH-01_4h_17_bsub50.tif
+2023-02-27 15:23:13,722 [INFO] &gt;&gt;&gt;&gt; using CPU
+2023-02-27 15:23:13,798 [INFO] ~~~ FINDING MASKS ~~~
+2023-02-27 15:23:17,215 [INFO] &gt;&gt;&gt;&gt; TOTAL TIME 3.42 sec
+Cellpose done: 9.8 sec</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-14-output-2.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Plotting done: 0.1 sec</code></pre>
+</div>
+</div>
+</section>
+<section id="extract-cell-level-results" class="level3">
+<h3 class="anchored" data-anchor-id="extract-cell-level-results">3-2 Extract cell-level results</h3>
+<div class="cell" data-execution_count="80">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>image_contrasted <span class="op">=</span> stack.rescale(rna, channel_to_stretch <span class="op">=</span> <span class="dv">0</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>image_contrasted <span class="op">=</span> stack.maximum_projection(image_contrasted)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>fov_results <span class="op">=</span> multistack.extract_cell(</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    cell_label <span class="op">=</span> masks, </span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    ndim <span class="op">=</span> <span class="dv">3</span>, </span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>    rna_coord <span class="op">=</span> spots_post_clustering, </span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>    others_coord <span class="op">=</span> {<span class="st">"clusters"</span>: clusters},</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>    image <span class="op">=</span> image_contrasted,</span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"number of cells identified: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(<span class="bu">len</span>(fov_results)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>number of cells identified: 6</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="81">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, cell_results <span class="kw">in</span> <span class="bu">enumerate</span>(fov_results):</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"cell </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(i))</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># get cell results</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    cell_mask <span class="op">=</span> cell_results[<span class="st">"cell_mask"</span>]</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    cell_coord <span class="op">=</span> cell_results[<span class="st">"cell_coord"</span>]</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    rna_coord <span class="op">=</span> cell_results[<span class="st">"rna_coord"</span>]</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    cluster_coord <span class="op">=</span> cell_results[<span class="st">"clusters"</span>]</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>    image_contrasted <span class="op">=</span> cell_results[<span class="st">"image"</span>]</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> number of rna </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(<span class="bu">len</span>(rna_coord)))</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"</span><span class="ch">\r</span><span class="st"> number of cluster </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(<span class="bu">len</span>(cluster_coord)))</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># plot cell</span></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>    plot.plot_cell(</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>        ndim<span class="op">=</span><span class="dv">3</span>, cell_coord<span class="op">=</span>cell_coord,</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>        rna_coord<span class="op">=</span>rna_coord, foci_coord<span class="op">=</span>cluster_coord,</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>        image<span class="op">=</span>image_contrasted, cell_mask<span class="op">=</span>cell_mask,</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Cell </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(i))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>cell 0
+ number of rna 9
+ number of cluster 0</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-16-output-2.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>cell 1
+ number of rna 3652
+ number of cluster 47</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-16-output-4.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>cell 2
+ number of rna 1
+ number of cluster 0</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-16-output-6.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>cell 3
+ number of rna 133
+ number of cluster 1</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-16-output-8.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>cell 4
+ number of rna 7
+ number of cluster 0</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-16-output-10.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>cell 5
+ number of rna 7
+ number of cluster 0</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="smFISH-quantification_optimise-parameters_files/figure-html/cell-16-output-12.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="82">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># summarise</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> multistack.summarize_extraction_results(fov_results, ndim <span class="op">=</span> <span class="dv">3</span>)</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"shape: </span><span class="sc">{0}</span><span class="st">"</span>.<span class="bu">format</span>(df.shape))</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>df.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>shape: (6, 7)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="82">
+
+<div>
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>cell_id</th>
+      <th>cell_area</th>
+      <th>nuc_area</th>
+      <th>nb_rna</th>
+      <th>nb_rna_in_nuc</th>
+      <th>nb_rna_out_nuc</th>
+      <th>nb_clusters</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2</td>
+      <td>116601</td>
+      <td>NaN</td>
+      <td>9</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>4</td>
+      <td>642768</td>
+      <td>NaN</td>
+      <td>3652</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>47</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>6</td>
+      <td>34821</td>
+      <td>NaN</td>
+      <td>1</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>8</td>
+      <td>452966</td>
+      <td>NaN</td>
+      <td>133</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>10</td>
+      <td>157723</td>
+      <td>NaN</td>
+      <td>7</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
