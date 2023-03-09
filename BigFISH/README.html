@@ -139,26 +139,25 @@ python smFISH_data_analysis_multiprocess.py</code></pre>
 <section id="spot-and-cluster-coordinates" class="level4">
 <h4 class="anchored" data-anchor-id="spot-and-cluster-coordinates">spot and cluster coordinates</h4>
 <p><code>.npz</code> file contains the centroid coordinates of spots and clusters. Separate files will be produced for each image and smFISH channels.</p>
-<p>The file contains two variables:</p>
+<p><code>.npz</code> files contain two variables:</p>
 <ul>
 <li><code>"spots_post_clustering"</code>: Information of individual spots (including those within clusters)
 <ul>
-<li>centroid z coordinate<br>
+<li>spot centroid z coordinate<br>
 </li>
-<li>centroid y coordinate<br>
+<li>spot centroid y coordinate<br>
 </li>
-<li>centroid x coordinate<br>
+<li>spot centroid x coordinate<br>
 </li>
-<li>‘1’ in a cluster; ‘-1’ NOT in a cluster<br>
-</li>
+<li>cluster index number if assigned - ‘-1’ if not in a cluster</li>
 </ul></li>
 <li><code>"clusters"</code>: Information of clusters
 <ul>
-<li>centroid z coordinate<br>
+<li>cluster centroid z coordinate<br>
 </li>
-<li>centroid y coordinate<br>
+<li>cluster centroid y coordinate<br>
 </li>
-<li>centroid x coordinate<br>
+<li>cluster centroid x coordinate<br>
 </li>
 <li>number of individual spots in cluster<br>
 </li>

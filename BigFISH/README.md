@@ -99,17 +99,17 @@ Batch processing produces the main output in `.npz` format as well as several qu
 
 `.npz` file contains the centroid coordinates of spots and clusters. Separate files will be produced for each image and smFISH channels. 
 
-The file contains two variables:
+`.npz` files contain two variables:  
 
-* `"spots_post_clustering"`: Information of individual spots (including those within clusters)  
-    * centroid z coordinate  
-    * centroid y coordinate  
-    * centroid x coordinate  
-    * '1' in a cluster; '-1' NOT in a cluster  
+* `"spots_post_clustering"`: Information of individual spots  
+    * spot centroid z coordinate   
+    * spot centroid y coordinate  
+    * spot centroid x coordinate  
+    * cluster index number if assigned - '-1' if not in a cluster
 * `"clusters"`: Information of clusters  
-    * centroid z coordinate  
-    * centroid y coordinate  
-    * centroid x coordinate  
+    * cluster centroid z coordinate  
+    * cluster centroid y coordinate  
+    * cluster centroid x coordinate  
     * number of individual spots in cluster  
     * cluster index number  
 
@@ -127,7 +127,7 @@ It can be parsed individually or in batch to summarise the experiment.
 
 #### quality control data
 
-These can be useful to confirm veracity of the analysis and/or troubleshooting. 
+These can be useful to confirm veracity of the analysis and/or to perform troubleshooting. 
 
 * Final detection plot: A plot of individual spots and clusters that are detected  
 * Reference spot image: A .tif image of the reference spot  
