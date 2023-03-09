@@ -4,7 +4,7 @@ Pre-process and quantify single-molecule Fluorescence in situ Hybridisation imag
 
 Measure (1) individual spot counts in the cell + (2) spot counts within signal dense regions.
 
-## Installation
+## INSTALLATION
 
 ### Set up virtual conda environment 
 
@@ -25,7 +25,7 @@ Make sure to use x86 version of Miniconda3, not the arm64 version (even if using
     # if segmenting tissue culture cells also install cellpose (the version may need to be 0.7.2)
     pip install cellpose 
 
-## smFISH quantification
+## smFISH QUANTIFICATION
 
 ### Optimise parameters 
 
@@ -51,14 +51,14 @@ Following should be determined from the notebook:
 
 Port the pre-determined quantification parameters to `smFISH_analysis_config.yaml` file. 
 
-#### General configuration 
+#### general configuration 
 
 * `number_of_workers`: Number of CPUs to use
 * `input_pattern`: Input image directory - use wildcard to grab the images 
 * `output_dir`: Directory where spot and cluster coordinates will be saved 
 * `output_qc_dir`: Directory where quality control files will be saved (e.g. reference spot, elbow plot..etc)
 
-#### Bigfish configuration
+#### bigfish configuration
 
 * `voxel_size_yx`: XY voxel size in nm
 * `voxel_size_z`: Z step voxel size in nm
@@ -84,12 +84,61 @@ Port the pre-determined quantification parameters to `smFISH_analysis_config.yam
 * `bf_radius`: Cluster radius in nanometer
 * `nb_min_spots`: Mimimum number of spots required for a dense region to be considered a cluster. 
 
-
-#### Start batch process
+#### start batch process
 
 Start the batch process by running the multiprocess python script. Make sure the YAML configuration file is in the same directory as the python script. 
 
     cd /path/to/python/script/
     python smFISH_data_analysis_multiprocess.py
+
+### BigFISH output 
+
+Batch processing produces the main output in `.npz` format as well as several quality control data. 
+
+#### spot and cluster coordinates 
+
+`.npz` file contains the centroid coordinates of spots and clusters. Separate files will be produced for each image and smFISH channels. 
+
+The file contains two variables:
+
+* `"spots_post_clustering"`: Information of individual spots (including those within clusters)  
+    * centroid z coordinate  
+    * centroid y coordinate  
+    * centroid x coordinate  
+    * '1' in a cluster; '-1' NOT in a cluster  
+* `"clusters"`: Information of clusters  
+    * centroid z coordinate  
+    * centroid y coordinate  
+    * centroid x coordinate  
+    * number of individual spots in cluster  
+    * cluster index number  
+
+It can be parsed individually or in batch to summarise the experiment.  
+
+    import numpy as np
+    npz_output = np.load("/path/to/npz/file")
+    sorted(npz_output)
+
+    ## Get individual spot coordinates
+    npz_output["spots_post_clustering"]
+
+    ## Get cluster coordinates 
+    npz_output["clusters"]
+
+#### quality control data
+
+These can be useful to confirm veracity of the analysis and/or troubleshooting. 
+
+* Final detection plot: A plot of individual spots and clusters that are detected  
+* Reference spot image: A .tif image of the reference spot  
+    * This image is the *undenoised* version, which can be used to extrapolate spot counts via integrated intensity method    
+* Elbow plot: An elbow plot of automated thresholding - only produced if `auto_threshold = True`   
+
+## SEGMENTATION AND SPOT DISTRIBUTION
+
+TBC...
+
+
+
 
 
