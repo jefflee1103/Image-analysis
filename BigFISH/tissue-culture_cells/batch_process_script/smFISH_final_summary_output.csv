@@ -1,0 +1,7 @@
+,file_name,channel,total_RNAs,cytosolic_RNAs,foci_count,mol_per_foci
+0,FISH-01_4h_17_bsub50_ch4_results_cell_0.npz,ch4,9,9.0,0,
+1,FISH-01_4h_17_bsub50_ch4_results_cell_1.npz,ch4,3637,2531.0,44,25.136363636363637
+2,FISH-01_4h_17_bsub50_ch4_results_cell_3.npz,ch4,133,117.0,1,16.0
+3,FISH-01_4h_17_bsub50_ch4_results_cell_2.npz,ch4,1,1.0,0,
+4,FISH-01_4h_17_bsub50_ch4_results_cell_5.npz,ch4,7,7.0,0,
+5,FISH-01_4h_17_bsub50_ch4_results_cell_4.npz,ch4,7,7.0,0,

@@ -108,33 +108,32 @@ Batch processing produces the main output in `.npz` format as well as several qu
 
 #### spot and cluster coordinates 
 
-`.npz` file contains the centroid coordinates of spots and clusters. Separate files will be produced for each image and smFISH channels. 
+`.npz` file contains the centroid coordinates of spots and clusters. Separate files will be produced for each cell and smFISH channels. 
 
-`.npz` files contain two variables:  
+`.npz` files contain two main lists:  
 
-* `"spots_post_clustering"`: Information of individual spots  
+* `"rna_coord"`: Information of individual spots  
     * spot centroid z coordinate   
     * spot centroid y coordinate  
     * spot centroid x coordinate  
     * cluster index number if assigned - '-1' if not in a cluster
-* `"clusters"`: Information of clusters  
+* `"foci"`: Information of clusters  
     * cluster centroid z coordinate  
     * cluster centroid y coordinate  
     * cluster centroid x coordinate  
     * number of individual spots in cluster  
     * cluster index number  
 
-It can be parsed individually or in batch to summarise the experiment.  
+It can be parsed individually or in batch to summarise the experiment (see the section below).  
 
     import numpy as np
     npz_output = np.load("/path/to/npz/file")
-    sorted(npz_output)
 
     ## Get individual spot coordinates
-    npz_output["spots_post_clustering"]
+    npz_output["rna_coord"]
 
     ## Get cluster coordinates 
-    npz_output["clusters"]
+    npz_output["foci"]
 
 #### quality control data
 
@@ -145,7 +144,9 @@ These can be useful to confirm veracity of the analysis and/or to perform troubl
     * This image is the *undenoised* version, which can be used to extrapolate spot counts via integrated intensity method    
 * Elbow plot: An elbow plot of automated thresholding - only produced if `auto_threshold = True`   
 
-## SEGMENTATION AND SPOT DISTRIBUTION
+## GET FINAL CSV FROM BATCH PROCESSING
+
+Use `parse_npz.ipynb` to collate individual `.npz` files for each cell/channel. This notebook will create a pandas dataframe with summary statistics of the smFISH quantificaiton. 
 
 
 
