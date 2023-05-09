@@ -1,0 +1,78 @@
+
+```{r}
+# R environment
+library(tidyverse)
+library(reticulate)
+
+# # install if necessary 
+# py_install("numpy", pip = TRUE, ignore_installed = TRUE)
+# py_install("tifffile", pip = TRUE, ignore_installed = TRUE)
+
+# python environment
+np <- import("numpy")
+tifffile <- import("tifffile")
+
+```
+
+```{r}
+## Set directory parameters 
+npz_celllevel_dir <- "/Users/jefflee/Desktop/smfish_yaxis"
+mask_dir <- "/Users/jefflee/Desktop/smfish_yaxis" # can be same as above
+mask_prefix <- "ROI_Hys_"
+
+## Get npz cell level files as list
+npz_celllevel_files <- list.files(npz_celllevel_dir, pattern = "*.npz", full.names = TRUE) %>%
+  set_names(~basename(.x))
+
+## Create a tidy dataframe of spot distribution along normalised y-axis
+yaxis_norm_df <- npz_celllevel_files %>%
+    imap_dfr(~ {
+        mask_filename <- paste0(mask_prefix, str_sub(.y, start = 1, end = -37), ".tif")
+        mask_file <- file.path(mask_dir, mask_filename)
+        mask <- tifffile$imread(mask_file)
+        mask_mip <- np$max(mask, axis = as.integer(0))
+        roi_pixels <- np$where(mask_mip == as.integer(1))
+        roi_y_pixels <- roi_pixels[[as.integer(1)]] %>% unique()
+
+        npz_celllevel <- np$load(.x)
+        df <- npz_celllevel$f[["rna_coord"]] %>%
+            as_tibble() %>%
+            setNames(c("z_coord", "y_coord", "x_coord", "in_foci")) %>%
+            mutate(
+                mask_y_min = min(roi_y_pixels),
+                mask_y_max = max(roi_y_pixels)
+            ) %>%
+            mutate(
+                normalised_y_coord = (y_coord - mask_y_min) / (mask_y_max - mask_y_min)
+            )
+    }, .id = "filename")
+
+View(yaxis_norm_df)
+
+## Create binned dataframe along y-axis
+yaxis_binned_df <- yaxis_norm_df %>%
+  mutate(y_axis_bins = cut(normalised_y_coord, breaks = seq(0, 1, by = 0.05), labels = FALSE)) %>%
+  group_by(filename, y_axis_bins) %>%
+  summarise(count = n())
+
+## Plot
+yaxis_binned_df %>%
+  ggplot(aes(x = y_axis_bins, y = count, group = "happy")) + 
+  geom_line(stat = "summary", alpha = 0.5) + 
+  geom_pointrange(stat = "summary") + 
+  labs(
+    title = "smFISH spot distribution along Y-axis",
+    x = "Normalised Y-axis bins",
+    y = "Localised smFISH spot count",
+    ) + 
+  scale_x_reverse() + 
+  coord_flip() + 
+  theme_minimal()
+
+
+
+
+
+
+
+```
