@@ -1,14 +1,16 @@
-# Big-FISH smFISH spot quantification scripts
+# Big-FISH HCRv3 spot quantification scripts
 
 Pre-process and quantify single-molecule Fluorescence in situ Hybridisation images using a python package Big-FISH: https://github.com/fish-quant/big-fish.
+NOTE: These scripts are stripped-down version of smFISH analysis with no cluster decomposition steps. These scripts will only output HCRv3 spot counts. 
 
-Measure (1) individual spot counts in the cell + (2) spot counts within signal dense regions.
+> Objective: Measure spot counts from of HCRv3 *in situ* hybridisation images
 
 ## INSTALLATION
 
 ### Set up virtual conda environment 
 
-Make sure to use x86 version of Miniconda3, not the arm64 version (even if using M1 mac computers): https://docs.conda.io/en/latest/miniconda.html
+Make sure to use x86 version of Miniconda3, not the arm64 version (even if using M1 mac computers): https://docs.conda.io/en/latest/miniconda.html  
+Compatible with existing smFISH conda environment. 
 
     conda create -n bigfish_v6 python=3.7
     conda activate bigfish_v6
@@ -25,11 +27,11 @@ Make sure to use x86 version of Miniconda3, not the arm64 version (even if using
     # if segmenting tissue culture cells also install cellpose (the version may need to be 0.7.2)
     pip install cellpose 
 
-## smFISH QUANTIFICATION
+## HCRv3 QUANTIFICATION
 
 ### Optimise parameters 
 
-Use `smFISH-quantification_optimise-parameters.ipynb` notebook to determine smFISH quantification parameters on a few subset of images.
+Use `HCRv3-quantification_optimise-parameters.ipynb` notebook to determine HCRv3 quantification parameters on a few subset of images.
 
     cd /path/to/working/directory/
     jupyter lab
@@ -40,23 +42,20 @@ Following should be determined from the notebook:
 * Image channels to quantify (0-based)
 * Whether auto thresholding will be used 
     * requires a fair number of spots within the image
-    * signal-to-background ratio of smFISH spots should be > 2 in raw images for reliable use
+    * signal-to-background ratio of HCRv3 spots should be > 2 in raw images for reliable use
 * If not using automated thresholding, find a suitable manual intensity threshold 
-    * Draw several line profiles over smFISH spots in `rna_log.tif` on ImageJ to find a suitable threshold
-* Dense region decomposition parameters
-    * how wide the dense regions should be? (`bf_radius` in nanometers)
-    * minimum number of spots within a dense region for it to be considered a cluster (`nb_min_spots`)
+    * Draw several line profiles over HCRv3 spots in `rna_log.tif` on ImageJ to find a suitable threshold
 
 ### Batch processing multiple images 
 
-Port the pre-determined quantification parameters to `smFISH_analysis_config.yaml` file. 
+Port the pre-determined quantification parameters to `HCRv3_analysis_config.yaml` file. 
 
 #### general configuration 
 
 * `number_of_workers`: Number of CPUs to use
 * `input_pattern`: Input image directory - use wildcard to grab the images 
 * `output_dir`: Directory where spot and cluster coordinates will be saved 
-* `output_qc_dir`: Directory where quality control files will be saved (e.g. reference spot, elbow plot..etc)
+* `output_qc_dir`: Directory where quality control files will be saved (e.g. final detection plot, elbow plot..etc)
 
 #### bigfish configuration
 
@@ -74,22 +73,17 @@ Port the pre-determined quantification parameters to `smFISH_analysis_config.yam
 
 * `auto_threshold`: True/False - Whether automated thresholding will be used
 
-* `smFISH_ch1`: First smFISH channel number - should match the `channels` configuration 
-* `smFISH_ch1_thresh`: LoG filtered spot intensity threshold for the first channel 
-* `smFISH_ch2`: Second smFISH channel number 
-* `smFISH_ch2_thresh`: LoG filtered spot intensity threshold for the second channel 
-
-* `alpha`: 0.5 - Do not change 
-* `beta`: 1 - Do not change 
-* `bf_radius`: Cluster radius in nanometer
-* `nb_min_spots`: Mimimum number of spots required for a dense region to be considered a cluster. 
+* `HCRv3_ch1`: First HCRv3 channel number - should match the `channels` configuration 
+* `HCRv3_ch1_thresh`: LoG filtered spot intensity threshold for the first channel 
+* `HCRv3_ch2`: Second HCRv3 channel number 
+* `HCRv3_ch2_thresh`: LoG filtered spot intensity threshold for the second channel 
 
 #### start batch process
 
 Start the batch process by running the multiprocess python script. Make sure the YAML configuration file is in the same directory as the python script. 
 
     cd /path/to/python/script/
-    python smFISH_data_analysis_multiprocess.py
+    python HCRv3_data_analysis_multiprocess.py
 
 ### BigFISH output 
 
@@ -97,21 +91,15 @@ Batch processing produces the main output in `.npz` format as well as several qu
 
 #### spot and cluster coordinates 
 
-`.npz` file contains the centroid coordinates of spots and clusters. Separate files will be produced for each image and smFISH channels. 
+`.npz` file contains the centroid coordinates of spots. Separate files will be produced for each image and HCRv3 channels. 
 
 `.npz` files contain two variables:  
 
-* `"spots_post_clustering"`: Information of individual spots  
+* `"spots_post_subpixel"`: Information of individual spots  
     * spot centroid z coordinate   
     * spot centroid y coordinate  
     * spot centroid x coordinate  
     * cluster index number if assigned - '-1' if not in a cluster
-* `"clusters"`: Information of clusters  
-    * cluster centroid z coordinate  
-    * cluster centroid y coordinate  
-    * cluster centroid x coordinate  
-    * number of individual spots in cluster  
-    * cluster index number  
 
 It can be parsed individually or in batch to summarise the experiment.  
 
@@ -122,21 +110,16 @@ It can be parsed individually or in batch to summarise the experiment.
     ## Get individual spot coordinates
     npz_output["spots_post_clustering"]
 
-    ## Get cluster coordinates 
-    npz_output["clusters"]
-
 #### quality control data
 
 These can be useful to confirm veracity of the analysis and/or to perform troubleshooting. 
 
-* Final detection plot: A plot of individual spots and clusters that are detected  
-* Reference spot image: A .tif image of the reference spot  
-    * This image is the *undenoised* version, which can be used to extrapolate spot counts via integrated intensity method    
+* Final detection plot: A plot of individual spots that are detected  
 * Elbow plot: An elbow plot of automated thresholding - only produced if `auto_threshold = True`   
 
 ## SEGMENTATION AND SPOT DISTRIBUTION
 
-TBC...
+See `HCRv3-quantification_get-cell-level-results.ipynb` for help. 
 
 
 
