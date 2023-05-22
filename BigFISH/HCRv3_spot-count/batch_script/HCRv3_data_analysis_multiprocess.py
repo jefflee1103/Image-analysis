@@ -106,56 +106,71 @@ def image_processing_function(image_loc, config):
                 show=False
             )
             threshold = detection.automated_threshold_setting(rna_log, mask)
+            spots, _ = detection.spots_thresholding(rna_log, mask, threshold)
+
         else:
             if image_channel == config["HCRv3_ch1"]:
                 threshold = config["HCRv3_ch1_thresh"]
+                spots, _ = detection.spots_thresholding(rna_log, mask, threshold)
             elif image_channel == config["HCRv3_ch2"]:
                 threshold = config["HCRv3_ch2_thresh"]
+                spots, _ = detection.spots_thresholding(rna_log, mask, threshold)
             else:
                 print("HCRv3 channel and threshold not correctly defined!")
 
-        spots, _ = detection.spots_thresholding(rna_log, mask, threshold)
+        # spots, _ = detection.spots_thresholding(rna_log, mask, threshold)
 
+        spots_count = spots.shape[0]
 
-        # - - - - - subpixel fitting
-        
-        if config["subpixel_fitting_mode"] == True:
-            # subpixel fitting
-            spots_post_subpixel = detection.fit_subpixel(
-                image = rna,
-                spots = spots,
-                voxel_size = (config["voxel_size_z"], config["voxel_size_yx"], config["voxel_size_yx"]),
-                spot_radius = (psf_z, psf_yx, psf_yx)
+        # - - - - - Allow bailout if too many spots are found (auto failure) and computer is struggling
+        if config["auto_threshold"] == True and config["auto_bailout_mode"] == True and spots_count > config["auto_bailout_spot_limit"]:
+            bailout_txt_path = pathlib.Path(config["output_qc_dir"]).joinpath(
+                f"{image_name}_ch{image_channel}_bailout.txt"
             )
+            lines = [f"{image_name}_ch{image_channel}", f"auto-threshold value attempted: {threshold}", f"spots counts found with the auto-threshold attempt: {spots_count}"]
+            with open(bailout_txt_path, "w") as f:
+                for line in lines:
+                    f.write(line)
+                    f.write("\n")
         else:
-            spots_post_subpixel = spots
+            # - - - - - subpixel fitting
+            if config["subpixel_fitting_mode"] == True:
+                # subpixel fitting
+                spots_post_subpixel = detection.fit_subpixel(
+                    image = rna,
+                    spots = spots,
+                    voxel_size = (config["voxel_size_z"], config["voxel_size_yx"], config["voxel_size_yx"]),
+                    spot_radius = (psf_z, psf_yx, psf_yx)
+                )
+            else:
+                spots_post_subpixel = spots
 
 
-        # - - - - - plot final detection
-        final_detection_plot_output = pathlib.Path(config["output_qc_dir"]).joinpath(
-            f"{image_name}_ch{image_channel}_finaldetection"
-        )
-        rna_mip = stack.maximum_projection(rna)
-        plot.plot_detection(rna_mip,
-                            spots=[spots_post_subpixel],
-                            shape=["circle"],
-                            radius=[spot_radius_px[-1]],
-                            color=["orange"],
-                            linewidth=[1],
-                            fill=[False],
-                            framesize=(20, 16),
-                            contrast=True,
-                            path_output=str(final_detection_plot_output),
-                            ext="png",
-                            show=False
-                            )
+            # - - - - - plot final detection
+            final_detection_plot_output = pathlib.Path(config["output_qc_dir"]).joinpath(
+                f"{image_name}_ch{image_channel}_finaldetection"
+            )
+            rna_mip = stack.maximum_projection(rna)
+            plot.plot_detection(rna_mip,
+                                spots=[spots_post_subpixel],
+                                shape=["circle"],
+                                radius=[spot_radius_px[-1]],
+                                color=["orange"],
+                                linewidth=[1],
+                                fill=[False],
+                                framesize=(20, 16),
+                                contrast=True,
+                                path_output=str(final_detection_plot_output),
+                                ext="png",
+                                show=False
+                                )
 
 
-        # save spots and clusters results in a npz file
-        npz_output_path = pathlib.Path(config["output_dir"]).joinpath(
-            f"{image_name}_ch{image_channel}_bfoutput"
-        )
-        np.savez(str(npz_output_path), spots = spots_post_subpixel)
+            # save spots and clusters results in a npz file
+            npz_output_path = pathlib.Path(config["output_dir"]).joinpath(
+                f"{image_name}_ch{image_channel}_bfoutput"
+            )
+            np.savez(str(npz_output_path), spots = spots_post_subpixel)
 
 
 
@@ -210,3 +225,5 @@ if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
     # Call the main function
     main()
+    print(" ")
+    print("Batch processing done!! XD")

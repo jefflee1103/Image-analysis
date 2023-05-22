@@ -29,6 +29,8 @@ bg_radius: 5
 channels: [3] 
 ## Bigfish single-spot detection parameters
 auto_threshold: True
+auto_bailout_mode: True
+auto_bailout_spot_limit: 50000
 ## Set up manual thresholds if not using auto-thresholding
 HCRv3_ch1: 2
 HCRv3_ch1_thresh: 50
