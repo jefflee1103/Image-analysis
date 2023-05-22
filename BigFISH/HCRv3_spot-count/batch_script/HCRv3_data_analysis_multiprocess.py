@@ -1,4 +1,4 @@
-# Modified: 2023.05.18
+# Modified: 2023.05.22
 
 import pathlib
 import glob
@@ -118,14 +118,17 @@ def image_processing_function(image_loc, config):
 
 
         # - - - - - subpixel fitting
-
-        # subpixel fitting
-        spots_post_subpixel = detection.fit_subpixel(
-            image = rna,
-            spots = spots,
-            voxel_size = (config["voxel_size_z"], config["voxel_size_yx"], config["voxel_size_yx"]),
-            spot_radius = (psf_z, psf_yx, psf_yx)
-        )
+        
+        if config["subpixel_fitting_mode"] == True:
+            # subpixel fitting
+            spots_post_subpixel = detection.fit_subpixel(
+                image = rna,
+                spots = spots,
+                voxel_size = (config["voxel_size_z"], config["voxel_size_yx"], config["voxel_size_yx"]),
+                spot_radius = (psf_z, psf_yx, psf_yx)
+            )
+        else:
+            spots_post_subpixel = spots
 
 
         # - - - - - plot final detection
@@ -152,7 +155,7 @@ def image_processing_function(image_loc, config):
         npz_output_path = pathlib.Path(config["output_dir"]).joinpath(
             f"{image_name}_ch{image_channel}_bfoutput"
         )
-        np.savez(str(npz_output_path), spots_post_subpixel = spots_post_subpixel)
+        np.savez(str(npz_output_path), spots = spots_post_subpixel)
 
 
 

@@ -1,6 +1,6 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # YAML configuration for Bigfish batch processing (for HCRv3)
-# Modified: 2023.05.18
+# Modified: 2023.05.22
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 # - - - - - General configuration
@@ -34,3 +34,5 @@ HCRv3_ch1: 2
 HCRv3_ch1_thresh: 50
 HCRv3_ch2: 3
 HCRv3_ch2_thresh: 30
+## Do subpixel fitting?
+subpixel_fitting_mode: False

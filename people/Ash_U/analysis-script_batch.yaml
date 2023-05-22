@@ -1,0 +1,34 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# YAML configuration for Ash's image processing
+# Modified: 2023.05.22
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+# - - - - - General configuration
+## The number of processes in the pool of processes
+number_of_workers: 1
+## The directory with images
+input_pattern: C:\Users\sjoh4548\Desktop\For_Ash\input\first_round\*.tif
+## Output directoris - These directories will be created if they don't exist
+output_df_dir: C:\Users\sjoh4548\Desktop\For_Ash\output\first_round_df
+output_mask_dir: C:\Users\sjoh4548\Desktop\For_Ash\output\first_round_mask
+
+## - - - - - Segmentation configuration
+## Segmentation channel and filtering
+segmentation_channel: 2
+median_filter_size: 1
+## Cellpose parameters
+diameter: 18
+flow_threshold: 0
+mask_threshold: -5
+do_3D: True
+stitch_threshold: 0
+gpu: True
+
+## - - - - - Mask manipulation configuration
+expansion_px: 2
+
+## - - - - - GFP channel configuration 
+GFP_channel: 0
+bgs_radius: 20
+
+# cd /d D:Jeff_Davis-lab\Github\Image-analysis\people\Ash_U

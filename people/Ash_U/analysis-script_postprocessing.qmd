@@ -1,0 +1,171 @@
+---
+title: "analysis-script_postprocessing"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Environment
+
+```{r}
+library(tidyverse)
+library(patchwork)
+library(rstatix)
+library(ggbeeswarm)
+
+```
+
+
+## Read in output df from python script
+
+```{r}
+output_files <- list.files("C:/Users/sjoh4548/Desktop/For_Ash/output/first_round_df", pattern = "*.csv", full.names = TRUE) %>%
+  set_names(~basename(.x))
+
+df_raw <- output_files %>%
+  map_dfr(~ read_csv(.x), .id = "filename", .progress = TRUE) 
+
+df_annotated <- df_raw %>%
+  janitor::clean_names() %>%
+  dplyr::select(-x1) %>%
+  mutate(genotype = case_when(
+    str_detect(filename, "esg") ~ "esg",
+    str_detect(filename, "toll") ~ "toll",
+  )) %>%
+  mutate(GFP_intensity_density = gfp_intensity_sum / doughnut_area) %>%
+  dplyr::rename("centroid_z" = centroid_0, "centroid_y" = centroid_1, "centroid_x" = centroid_2)
+
+```
+
+## Find threshold to distinguish small vs large nuclei
+
+```{r}
+## exploratory histogram
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  filter(area > 500) %>%
+  ggplot(aes(x = area)) + 
+  geom_vline(xintercept = 850, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() 
+
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = axis_major_length)) + 
+  geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() 
+
+
+## get small/large nuclei stats
+# df_nucsize <- df_annotated %>%
+#   filter(area > 600) %>%
+#   mutate(nuclear_size = if_else(area > 850, "large", "small")) 
+
+df_nucsize <- df_annotated %>%
+  filter(axis_major_length > 14) %>%
+  mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
+
+
+df_nucsize_summary <- df_nucsize %>%
+  group_by(genotype, filename) %>%
+  summarise(
+    large = sum(nuclear_size == "large"),
+    small = sum(nuclear_size == "small")
+  ) %>%
+  pivot_longer(cols = c(large, small), names_to = "nuclear_size", values_to = "count")
+
+## statistics 
+df_nucsize_summary_stat <- df_nucsize_summary %>%
+  group_by(nuclear_size) %>%
+  wilcox_test(count ~ genotype) %>%
+  add_significance()
+
+## plot
+df_nucsize_summary %>%
+  ggplot(aes(x = genotype, y = count, colour = genotype)) +
+  geom_violin(linewidth = 0.3) + 
+  geom_quasirandom() + 
+  geom_text(data = df_nucsize_summary_stat,
+             aes(x = 1.5, y = 600, label = p.signif),
+             inherit.aes = FALSE) + 
+  facet_wrap(~ nuclear_size) +
+  labs(
+    title = "Large & small nuclei counts",
+    x = "",
+    y = "Nuclei counts per field of view",
+    colour = "Genotype"
+  ) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+```
+
+## GFP signal
+
+```{r}
+## scatter plot
+df_nucsize %>%
+  ggplot(aes(x = axis_major_length, y = GFP_intensity_density)) +
+  geom_point(size = 0.2) + 
+  facet_wrap(~genotype) +
+  theme_bw()
+
+## GFP stats
+GFP_stats <- df_nucsize %>%
+  group_by(genotype) %>%
+  wilcox_test(GFP_intensity_density ~ nuclear_size) %>%
+  add_significance()
+
+## plot
+df_nucsize %>%
+  ggplot(aes(x = nuclear_size, y = GFP_intensity_density, fill = nuclear_size)) +
+  geom_boxplot(width = 0.5, show.legend = FALSE) +
+  geom_text(
+    data = GFP_stats,
+    aes(x = 1.5, y = 40000, label = p.signif),
+    inherit.aes = FALSE
+  ) +
+  scale_fill_manual(values = c("coral", "seagreen")) +
+  facet_wrap(~genotype) +
+  theme_bw()
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+df_annotated %>%
+  filter(area > 100) %>%
+  ggplot(aes(x = area, y = GFP_intensity_density, colour = genotype)) + 
+  geom_point(size = 0.2) +
+  theme_bw() +
+  facet_wrap(~genotype)
+```
+
+
+
+
+
