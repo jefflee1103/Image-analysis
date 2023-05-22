@@ -1,4 +1,5 @@
 # Modified: 2023.03.07
+# TODO: allow subpixel spots to be output in npz 
 
 import pathlib
 import glob
@@ -256,7 +257,7 @@ def image_processing_function(image_loc, config):
         fov_results = multistack.extract_cell(
             cell_label=masks.astype(np.int64),
             ndim=3,
-            rna_coord=spots_post_clustering,
+            rna_coord=np.floor(spots_post_clustering),
             others_coord={"foci": clusters},
             image=image_contrasted,
             others_image={"smfish": rna_mip},
