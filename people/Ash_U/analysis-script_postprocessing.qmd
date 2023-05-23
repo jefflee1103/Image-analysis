@@ -44,7 +44,7 @@ df_annotated <- df_raw %>%
 ## exploratory histogram
 df_annotated %>%
   filter(genotype == "esg") %>%
-  filter(area > 500) %>%
+  # filter(area > 500) %>%
   ggplot(aes(x = area)) + 
   geom_vline(xintercept = 850, linetype = "dashed", alpha = 0.5) + 
   geom_density() + 
@@ -57,6 +57,8 @@ df_annotated %>%
   geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
   geom_density() + 
   theme_bw() 
+
+ggsave("./plots/nuclei_diameter_density_histogram.pdf", width = 10, height = 9)
 
 
 ## get small/large nuclei stats
@@ -78,9 +80,14 @@ df_nucsize_summary <- df_nucsize %>%
   pivot_longer(cols = c(large, small), names_to = "nuclear_size", values_to = "count")
 
 ## statistics 
-df_nucsize_summary_stat <- df_nucsize_summary %>%
+df_nucsize_summary_stat_1 <- df_nucsize_summary %>%
   group_by(nuclear_size) %>%
   wilcox_test(count ~ genotype) %>%
+  add_significance()
+
+df_nucsize_summary_stat_2 <- df_nucsize_summary %>%
+  group_by(genotype) %>%
+  wilcox_test(count ~ nuclear_size) %>%
   add_significance()
 
 ## plot
@@ -88,7 +95,7 @@ df_nucsize_summary %>%
   ggplot(aes(x = genotype, y = count, colour = genotype)) +
   geom_violin(linewidth = 0.3) + 
   geom_quasirandom() + 
-  geom_text(data = df_nucsize_summary_stat,
+  geom_text(data = df_nucsize_summary_stat_1,
              aes(x = 1.5, y = 600, label = p.signif),
              inherit.aes = FALSE) + 
   facet_wrap(~ nuclear_size) +
@@ -98,8 +105,33 @@ df_nucsize_summary %>%
     y = "Nuclei counts per field of view",
     colour = "Genotype"
   ) +
+  scale_colour_manual(values = c("magenta", "goldenrod")) +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5))
+
+ggsave("./plots/nuclei_count_per_image_per_size_and_genotype.pdf", width = 8, height = 6)
+
+
+df_nucsize_summary %>%
+  ggplot(aes(x = nuclear_size, y = count, colour = nuclear_size)) +
+  geom_violin(linewidth = 0.3) + 
+  geom_quasirandom() + 
+  geom_text(data = df_nucsize_summary_stat_2,
+             aes(x = 1.5, y = 600, label = p.signif),
+             inherit.aes = FALSE) +
+  facet_wrap(~ genotype) +
+  labs(
+    title = "Large & small nuclei counts",
+    x = "",
+    y = "Nuclei counts per field of view",
+    colour = "Nuclei size"
+  ) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggsave("./plots/nuclei_count_per_image_per_genotype_and_size.pdf", width = 8, height = 6)
+
+
 
 
 ```
@@ -133,6 +165,7 @@ df_nucsize %>%
   facet_wrap(~genotype) +
   theme_bw()
 
+ggsave("./plots/GFP_density_per_genotype_per_size.pdf", width = 7, height = 6)
 
 
 
