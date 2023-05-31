@@ -5,17 +5,17 @@
 
 # - - - - - General configuration
 ## The number of processes in the pool of processes
-number_of_workers: 1
+number_of_workers: 6
 ## The directory with images
-input_pattern: C:\Users\sjoh4548\Desktop\For_Ash\input\first_round\*.tif
+input_pattern: E:\For_Ash\input\combined_first_second\*.tif
 ## Output directoris - These directories will be created if they don't exist
-output_df_dir: C:\Users\sjoh4548\Desktop\For_Ash\output\first_round_df
-output_mask_dir: C:\Users\sjoh4548\Desktop\For_Ash\output\first_round_mask
+output_df_dir: E:\For_Ash\output\combined_first_second_df
+output_mask_dir: E:\For_Ash\output\combined_first_second_mask
 
 ## - - - - - Segmentation configuration
 ## Segmentation channel and filtering
 segmentation_channel: 2
-median_filter_size: 1
+median_filter_size: 3
 ## Cellpose parameters
 diameter: 18
 flow_threshold: 0

@@ -7,11 +7,11 @@
 ## The number of processes in the pool of processes
 number_of_workers: 2
 ## The directory with images
-input_pattern: /Users/jefflee/Desktop/*.tif
+input_pattern: C:\Users\sjoh4548\Desktop\New folder\*.tif
 ## The directory where the big-fish output npz or quality control files will be stored
 ## These directories will be created if they don't exist
-output_dir: /Users/jefflee/Desktop/bf_output
-output_qc_dir: /Users/jefflee/Desktop/bf_output_qc
+output_dir: C:\Users\sjoh4548\Desktop\New folder\bf_output
+output_qc_dir: C:\Users\sjoh4548\Desktop\New folder\bf_output_qc
 
 # - - - - - Bigfish configuration
 ## Image voxel size and PSF parameters
@@ -26,11 +26,11 @@ microscope: confocal
 bg_radius: 5
 ## The channels for which to run the processing (0-based)
 ## Use [2, 3] format to quantify two HCRv3 channels 
-channels: [3] 
+channels: [2] 
 ## Bigfish single-spot detection parameters
 auto_threshold: True
 auto_bailout_mode: True
-auto_bailout_spot_limit: 50000
+auto_bailout_spot_limit: 100
 ## Set up manual thresholds if not using auto-thresholding
 HCRv3_ch1: 2
 HCRv3_ch1_thresh: 50

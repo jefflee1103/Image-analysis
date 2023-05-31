@@ -13,6 +13,10 @@ library(tidyverse)
 library(patchwork)
 library(rstatix)
 library(ggbeeswarm)
+library(furrr)
+library(ggprism)
+
+plan(multisession, workers = 8)
 
 ```
 
@@ -20,11 +24,13 @@ library(ggbeeswarm)
 ## Read in output df from python script
 
 ```{r}
-output_files <- list.files("C:/Users/sjoh4548/Desktop/For_Ash/output/first_round_df", pattern = "*.csv", full.names = TRUE) %>%
-  set_names(~basename(.x))
+output_files <- list.files("E:/For_Ash/output/combined_first_second_df", 
+                           pattern = "*.csv", 
+                           full.names = TRUE) %>%
+  set_names(~basename(.x) %>% tools::file_path_sans_ext())
 
 df_raw <- output_files %>%
-  map_dfr(~ read_csv(.x), .id = "filename", .progress = TRUE) 
+  future_map_dfr(~ read_csv(.x), .id = "filename", .progress = TRUE) 
 
 df_annotated <- df_raw %>%
   janitor::clean_names() %>%
@@ -32,23 +38,29 @@ df_annotated <- df_raw %>%
   mutate(genotype = case_when(
     str_detect(filename, "esg") ~ "esg",
     str_detect(filename, "toll") ~ "toll",
+    str_detect(filename, "bsk") ~ "bsk",
+    TRUE ~ "Unidentified"
   )) %>%
+  mutate(age = str_extract(filename, "[:digit:]+d")) %>%
+  mutate(experiment = str_extract(filename, "exp[:upper:]")) %>%
   mutate(GFP_intensity_density = gfp_intensity_sum / doughnut_area) %>%
   dplyr::rename("centroid_z" = centroid_0, "centroid_y" = centroid_1, "centroid_x" = centroid_2)
 
 ```
 
-## Find threshold to distinguish small vs large nuclei
+## Cell count
+
+### Find threshold to distinguish small vs large nuclei
 
 ```{r}
 ## exploratory histogram
-df_annotated %>%
-  filter(genotype == "esg") %>%
-  # filter(area > 500) %>%
-  ggplot(aes(x = area)) + 
-  geom_vline(xintercept = 850, linetype = "dashed", alpha = 0.5) + 
-  geom_density() + 
-  theme_bw() 
+# df_annotated %>%
+#   filter(genotype == "esg") %>%
+#   # filter(area > 500) %>%
+#   ggplot(aes(x = area)) + 
+#   geom_vline(xintercept = 850, linetype = "dashed", alpha = 0.5) + 
+#   geom_density() + 
+#   theme_bw() 
 
 df_annotated %>%
   filter(genotype == "esg") %>%
@@ -56,20 +68,20 @@ df_annotated %>%
   geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
   geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
   geom_density() + 
-  theme_bw() 
+  theme_bw() +
+  facet_wrap(~ experiment)
 
 ggsave("./plots/nuclei_diameter_density_histogram.pdf", width = 10, height = 9)
+```
 
 
-## get small/large nuclei stats
-# df_nucsize <- df_annotated %>%
-#   filter(area > 600) %>%
-#   mutate(nuclear_size = if_else(area > 850, "large", "small")) 
+### Get cell count comparison plot
 
+```{r}
+## Get summary dataframe
 df_nucsize <- df_annotated %>%
   filter(axis_major_length > 14) %>%
   mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
-
 
 df_nucsize_summary <- df_nucsize %>%
   group_by(genotype, filename) %>%
@@ -77,27 +89,42 @@ df_nucsize_summary <- df_nucsize %>%
     large = sum(nuclear_size == "large"),
     small = sum(nuclear_size == "small")
   ) %>%
-  pivot_longer(cols = c(large, small), names_to = "nuclear_size", values_to = "count")
+  pivot_longer(cols = c(large, small), names_to = "nuclear_size", values_to = "count") %>%
+  ungroup() %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
 
 ## statistics 
+### Comparing (cell counts per genotype) grouped by nuclear size 
 df_nucsize_summary_stat_1 <- df_nucsize_summary %>%
   group_by(nuclear_size) %>%
-  wilcox_test(count ~ genotype) %>%
-  add_significance()
+  # wilcox_test(count ~ genotype) %>%
+  dunn_test(count ~ genotype, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  add_xy_position() %>%
+  mutate(p.adj = signif(p.adj, 3))
 
+### Comparing (cell counts per nuclear size) grouped by genotype
 df_nucsize_summary_stat_2 <- df_nucsize_summary %>%
   group_by(genotype) %>%
-  wilcox_test(count ~ nuclear_size) %>%
-  add_significance()
+  # wilcox_test(count ~ nuclear_size) %>%
+  dunn_test(count ~ nuclear_size, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  add_xy_position() %>%
+  mutate(p.adj = signif(p.adj, 3))
 
 ## plot
+### Comparing (cell counts per genotype) grouped by nuclear size 
 df_nucsize_summary %>%
   ggplot(aes(x = genotype, y = count, colour = genotype)) +
   geom_violin(linewidth = 0.3) + 
-  geom_quasirandom() + 
-  geom_text(data = df_nucsize_summary_stat_1,
-             aes(x = 1.5, y = 600, label = p.signif),
-             inherit.aes = FALSE) + 
+  geom_quasirandom(show.legend = FALSE) + 
+  # geom_text(data = df_nucsize_summary_stat_1,
+  #            aes(x = 1.5, y = 600, label = p.adj.signif),
+  #            inherit.aes = FALSE) + 
+  add_pvalue(data = df_nucsize_summary_stat_1, 
+             inherit.aes = FALSE,
+             label = "p={p.adj}") +
   facet_wrap(~ nuclear_size) +
   labs(
     title = "Large & small nuclei counts",
@@ -105,98 +132,255 @@ df_nucsize_summary %>%
     y = "Nuclei counts per field of view",
     colour = "Genotype"
   ) +
-  scale_colour_manual(values = c("magenta", "goldenrod")) +
+  scale_colour_manual(values = c("gray60", "coral", "steelblue")) +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5))
 
 ggsave("./plots/nuclei_count_per_image_per_size_and_genotype.pdf", width = 8, height = 6)
 
-
+### Comparing (cell counts per nuclear size) grouped by genotype
 df_nucsize_summary %>%
   ggplot(aes(x = nuclear_size, y = count, colour = nuclear_size)) +
   geom_violin(linewidth = 0.3) + 
-  geom_quasirandom() + 
-  geom_text(data = df_nucsize_summary_stat_2,
-             aes(x = 1.5, y = 600, label = p.signif),
-             inherit.aes = FALSE) +
+  geom_quasirandom(show.legend = FALSE) + 
+  # geom_text(data = df_nucsize_summary_stat_2,
+  #            aes(x = 1.5, y = 600, label = p.signif),
+  #            inherit.aes = FALSE) +
+  add_pvalue(data = df_nucsize_summary_stat_2,
+             inherit.aes = FALSE,
+             label = "p={p.adj}") +
   facet_wrap(~ genotype) +
   labs(
-    title = "Large & small nuclei counts",
+    title = "Nuclei counts per genotype",
     x = "",
     y = "Nuclei counts per field of view",
     colour = "Nuclei size"
   ) +
   theme_bw() +
+  scale_colour_manual(values = c("springgreen4", "springgreen2")) +
   theme(plot.title = element_text(hjust = 0.5))
 
 ggsave("./plots/nuclei_count_per_image_per_genotype_and_size.pdf", width = 8, height = 6)
-
-
 
 
 ```
 
 ## GFP signal
 
+### Normalise GFP intensity
+
+```{r}
+## get esg internal control GFP indensity per experiment
+esg_GFP_control <- df_nucsize %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size) %>%
+  summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_GFPnorm <- df_nucsize %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size")) %>%
+  mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+```
+
+### Plot and compare GFP fluorescence
+
 ```{r}
 ## scatter plot
-df_nucsize %>%
-  ggplot(aes(x = axis_major_length, y = GFP_intensity_density)) +
+df_GFPnorm %>%
+  ggplot(aes(x = axis_major_length, y = norm_GFP_intensity_density)) +
   geom_point(size = 0.2) + 
   facet_wrap(~genotype) +
   theme_bw()
 
 ## GFP stats
-GFP_stats <- df_nucsize %>%
+GFP_stats <- df_GFPnorm %>%
   group_by(genotype) %>%
-  wilcox_test(GFP_intensity_density ~ nuclear_size) %>%
-  add_significance()
+  dunn_test(GFP_intensity_density ~ nuclear_size, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  add_xy_position() %>%
+  mutate(p.adj = signif(p.adj, 3))
 
 ## plot
-df_nucsize %>%
+df_GFPnorm %>%
   ggplot(aes(x = nuclear_size, y = GFP_intensity_density, fill = nuclear_size)) +
-  geom_boxplot(width = 0.5, show.legend = FALSE) +
-  geom_text(
-    data = GFP_stats,
-    aes(x = 1.5, y = 40000, label = p.signif),
-    inherit.aes = FALSE
+  geom_boxplot(width = 0.5, show.legend = FALSE, 
+               outlier.size = 0.2, outlier.stroke = 0) +
+  # geom_text(
+  #   data = GFP_stats,
+  #   aes(x = 1.5, y = 40000, label = p.signif),
+  #   inherit.aes = FALSE
+  # ) +
+  add_pvalue(data = GFP_stats,
+             inherit.aes = FALSE,
+             label = "p={p.adj}") +
+  labs(
+    title = "GFP intensity",
+    x = "",
+    y = "Normalised GFP fluorescence density",
   ) +
-  scale_fill_manual(values = c("coral", "seagreen")) +
+  scale_fill_manual(values = c("springgreen4", "springgreen2")) +
   facet_wrap(~genotype) +
-  theme_bw()
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
 
 ggsave("./plots/GFP_density_per_genotype_per_size.pdf", width = 7, height = 6)
 
 
-
-
-
-
 ```
 
 
+## Nearest neighbour distances between nuclei
 
-
-
-
-
-
-
-
-
-
-
-
+### Calculate nearest neighbour distances 
 
 ```{r}
+library(FNN)
 
-df_annotated %>%
-  filter(area > 100) %>%
-  ggplot(aes(x = area, y = GFP_intensity_density, colour = genotype)) + 
-  geom_point(size = 0.2) +
-  theme_bw() +
-  facet_wrap(~genotype)
+## nearest neighnour
+image_names <- unique(df_GFPnorm$filename) %>% set_names()
+
+knn_df <- image_names %>%
+  map_dfr(~{
+    coords <- df_GFPnorm %>%
+      filter(filename == .x) %>%
+      dplyr::select(contains("centroid")) %>%
+      as.matrix()
+    
+    knn_output <- get.knn(data = coords, k = 1)
+    
+    output <- tibble(
+      nn_index = pluck(knn_output, "nn.index") %>% as.vector(),
+      nn_dist = pluck(knn_output, "nn.dist") %>% as.vector()
+    )
+    return(output)
+  })
+
+df_nn <- df_GFPnorm %>%
+  bind_cols(knn_df) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+## cell count
+df_cell_count_summary <- df_nn %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    cell_count = n()
+  ) %>%
+  ungroup() %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) 
+
+
 ```
+
+### Plot cell count and nearest neighbour quantifications
+
+```{r}
+library(ggridges)
+
+## cell count
+### cell count stat
+cell_count_stat <- df_cell_count_summary %>%
+  dunn_test(cell_count ~ genotype, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  add_xy_position() %>%
+  mutate(p.adj = signif(p.adj, 3))
+
+### cell count plot
+p1 <- df_cell_count_summary %>%
+  ggplot(aes(x = genotype, y = cell_count, colour = genotype)) +
+  # geom_violin(linewidth = 0.3) + 
+  geom_quasirandom(show.legend = FALSE, alpha = 0.4, width = 0.3) + 
+  geom_pointrange(stat = "summary", linewidth = 1.2, size = 1.2,
+                  fun.data = "mean_sdl",
+                  fun.args = list(mult = 1)) +
+  add_pvalue(data = cell_count_stat, 
+             inherit.aes = FALSE,
+             label = "p={p.adj}") +
+  labs(
+    title = "Cell counts",
+    x = "",
+    y = "Nuclei counts per field of view",
+    colour = "Genotype"
+  ) +
+  scale_colour_manual(values = c("gray60", "coral", "steelblue")) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+
+## nearest neighbour
+### nn stat
+nn_stat <- df_nn %>%
+  dunn_test(nn_dist ~ genotype, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  add_xy_position() %>%
+  mutate(p.adj = signif(p.adj, 3))
+
+### nn plot
+df_nn %>%
+  mutate(genotype = fct_rev(genotype)) %>%
+  ggplot(aes(x = nn_dist, y = genotype, fill = genotype, colour = genotype)) +
+  geom_density_ridges(
+    aes(height = stat(ndensity)),
+    alpha = 0.4, 
+    scale = 1.3,
+    bandwidth = 0.16,
+  ) + 
+  labs(
+    title = "Nearest neighbour distances",
+    x = "",
+    y = "Density histogram",
+    colour = "Genotype"
+  ) +
+  scale_colour_manual(values = c("gray60", "coral", "steelblue") %>% rev()) +
+  scale_fill_manual(values = c("gray60", "coral", "steelblue") %>% rev()) +
+  theme_bw() +
+  coord_cartesian(xlim = c(0, 50)) +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none")
+
+p2 <- df_nn %>%
+  ggplot(aes(x = genotype, y = nn_dist, fill = genotype, colour = genotype)) +
+  geom_violin(
+    alpha = 0.5, 
+    linewidth = 0.3,
+    bw = 0.5,
+    draw_quantiles = c(0, 0.25, 0.5, 0.75, 1)
+  ) + 
+  add_pvalue(data = nn_stat, 
+             inherit.aes = FALSE,
+             label = "p={p.adj}") +
+  labs(
+    title = "Nearest neighbour distances",
+    x = "",
+    y = "Density histogram",
+    colour = "Genotype"
+  ) +
+  scale_colour_manual(values = c("gray60", "coral", "steelblue")) +
+  scale_fill_manual(values = c("gray60", "coral", "steelblue")) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") 
+
+p1 / p2
+
+ggsave("./plots/cellcount-and-nearest-neighbour.pdf", width = 5.5, height = 10)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
