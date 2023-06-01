@@ -42,6 +42,10 @@ df_annotated <- df_raw %>%
     TRUE ~ "Unidentified"
   )) %>%
   mutate(age = str_extract(filename, "[:digit:]+d")) %>%
+  mutate(age = case_when(
+    age == "22d" ~ "22d",
+    TRUE ~ "12d"
+  )) %>%
   mutate(experiment = str_extract(filename, "exp[:upper:]")) %>%
   mutate(GFP_intensity_density = gfp_intensity_sum / doughnut_area) %>%
   dplyr::rename("centroid_z" = centroid_0, "centroid_y" = centroid_1, "centroid_x" = centroid_2)
@@ -69,7 +73,7 @@ df_annotated %>%
   geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
   geom_density() + 
   theme_bw() +
-  facet_wrap(~ experiment)
+  facet_wrap(~ experiment + age)
 
 ggsave("./plots/nuclei_diameter_density_histogram.pdf", width = 10, height = 9)
 ```
@@ -84,7 +88,7 @@ df_nucsize <- df_annotated %>%
   mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
 
 df_nucsize_summary <- df_nucsize %>%
-  group_by(genotype, filename) %>%
+  group_by(genotype, filename, age) %>%
   summarise(
     large = sum(nuclear_size == "large"),
     small = sum(nuclear_size == "small")
@@ -97,7 +101,7 @@ df_nucsize_summary <- df_nucsize %>%
 ## statistics 
 ### Comparing (cell counts per genotype) grouped by nuclear size 
 df_nucsize_summary_stat_1 <- df_nucsize_summary %>%
-  group_by(nuclear_size) %>%
+  group_by(nuclear_size, age) %>%
   # wilcox_test(count ~ genotype) %>%
   dunn_test(count ~ genotype, p.adjust.method = "bonferroni") %>%
   add_significance() %>%
@@ -106,7 +110,7 @@ df_nucsize_summary_stat_1 <- df_nucsize_summary %>%
 
 ### Comparing (cell counts per nuclear size) grouped by genotype
 df_nucsize_summary_stat_2 <- df_nucsize_summary %>%
-  group_by(genotype) %>%
+  group_by(genotype, age) %>%
   # wilcox_test(count ~ nuclear_size) %>%
   dunn_test(count ~ nuclear_size, p.adjust.method = "bonferroni") %>%
   add_significance() %>%
@@ -124,8 +128,10 @@ df_nucsize_summary %>%
   #            inherit.aes = FALSE) + 
   add_pvalue(data = df_nucsize_summary_stat_1, 
              inherit.aes = FALSE,
-             label = "p={p.adj}") +
-  facet_wrap(~ nuclear_size) +
+             # label = "p={p.adj}",
+             label = "{p.adj.signif}",
+             ) +
+  facet_wrap(~ age + nuclear_size) +
   labs(
     title = "Large & small nuclei counts",
     x = "",
@@ -148,8 +154,9 @@ df_nucsize_summary %>%
   #            inherit.aes = FALSE) +
   add_pvalue(data = df_nucsize_summary_stat_2,
              inherit.aes = FALSE,
-             label = "p={p.adj}") +
-  facet_wrap(~ genotype) +
+             # label = "p={p.adj}",
+             label = "{p.adj.signif}",) +
+  facet_wrap(~ age + genotype) +
   labs(
     title = "Nuclei counts per genotype",
     x = "",
@@ -173,12 +180,12 @@ ggsave("./plots/nuclei_count_per_image_per_genotype_and_size.pdf", width = 8, he
 ## get esg internal control GFP indensity per experiment
 esg_GFP_control <- df_nucsize %>%
   filter(genotype == "esg") %>%
-  group_by(experiment, nuclear_size) %>%
+  group_by(experiment, nuclear_size, age) %>%
   summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
   ungroup()
 
 df_GFPnorm <- df_nucsize %>%
-  left_join(esg_GFP_control, by = c("experiment", "nuclear_size")) %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size", "age")) %>%
   mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
   mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
   mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
@@ -192,12 +199,12 @@ df_GFPnorm <- df_nucsize %>%
 df_GFPnorm %>%
   ggplot(aes(x = axis_major_length, y = norm_GFP_intensity_density)) +
   geom_point(size = 0.2) + 
-  facet_wrap(~genotype) +
+  facet_wrap(~ age + genotype) +
   theme_bw()
 
 ## GFP stats
 GFP_stats <- df_GFPnorm %>%
-  group_by(genotype) %>%
+  group_by(genotype, age) %>%
   dunn_test(GFP_intensity_density ~ nuclear_size, p.adjust.method = "bonferroni") %>%
   add_significance() %>%
   add_xy_position() %>%
@@ -215,14 +222,16 @@ df_GFPnorm %>%
   # ) +
   add_pvalue(data = GFP_stats,
              inherit.aes = FALSE,
-             label = "p={p.adj}") +
+             # label = "p={p.adj}",
+             label = "{p.adj.signif}"
+             ) +
   labs(
     title = "GFP intensity",
     x = "",
     y = "Normalised GFP fluorescence density",
   ) +
   scale_fill_manual(values = c("springgreen4", "springgreen2")) +
-  facet_wrap(~genotype) +
+  facet_wrap(~ age + genotype) +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5))
 
@@ -265,7 +274,7 @@ df_nn <- df_GFPnorm %>%
 
 ## cell count
 df_cell_count_summary <- df_nn %>%
-  group_by(filename, genotype) %>%
+  group_by(filename, genotype, age) %>%
   summarise(
     cell_count = n()
   ) %>%
@@ -283,6 +292,7 @@ library(ggridges)
 ## cell count
 ### cell count stat
 cell_count_stat <- df_cell_count_summary %>%
+  group_by(age) %>%
   dunn_test(cell_count ~ genotype, p.adjust.method = "bonferroni") %>%
   add_significance() %>%
   add_xy_position() %>%
@@ -298,21 +308,27 @@ p1 <- df_cell_count_summary %>%
                   fun.args = list(mult = 1)) +
   add_pvalue(data = cell_count_stat, 
              inherit.aes = FALSE,
-             label = "p={p.adj}") +
+             label = "{p.adj.signif}") +
   labs(
     title = "Cell counts",
     x = "",
     y = "Nuclei counts per field of view",
     colour = "Genotype"
   ) +
+  facet_wrap(~ age, nrow = 2) + 
   scale_colour_manual(values = c("gray60", "coral", "steelblue")) +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5),
         legend.position = "none")
 
+p1
+
+ggsave("./plots/cellcount.pdf", width = 5.5, height = 8)
+
 ## nearest neighbour
 ### nn stat
 nn_stat <- df_nn %>%
+  group_by(age) %>%
   dunn_test(nn_dist ~ genotype, p.adjust.method = "bonferroni") %>%
   add_significance() %>%
   add_xy_position() %>%
@@ -337,6 +353,7 @@ df_nn %>%
   scale_colour_manual(values = c("gray60", "coral", "steelblue") %>% rev()) +
   scale_fill_manual(values = c("gray60", "coral", "steelblue") %>% rev()) +
   theme_bw() +
+  facet_wrap(~ age) +
   coord_cartesian(xlim = c(0, 50)) +
   theme(plot.title = element_text(hjust = 0.5),
         legend.position = "none")
@@ -351,7 +368,7 @@ p2 <- df_nn %>%
   ) + 
   add_pvalue(data = nn_stat, 
              inherit.aes = FALSE,
-             label = "p={p.adj}") +
+             label = "{p.adj.signif}") +
   labs(
     title = "Nearest neighbour distances",
     x = "",
@@ -361,12 +378,13 @@ p2 <- df_nn %>%
   scale_colour_manual(values = c("gray60", "coral", "steelblue")) +
   scale_fill_manual(values = c("gray60", "coral", "steelblue")) +
   theme_bw() +
+  facet_wrap(~ age, nrow = 2) +
   theme(plot.title = element_text(hjust = 0.5),
         legend.position = "none") 
 
-p1 / p2
+p2
 
-ggsave("./plots/cellcount-and-nearest-neighbour.pdf", width = 5.5, height = 10)
+ggsave("./plots/nearest-neighbour.pdf", width = 5.5, height = 8)
 ```
 
 
