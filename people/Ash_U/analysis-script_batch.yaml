@@ -5,12 +5,12 @@
 
 # - - - - - General configuration
 ## The number of processes in the pool of processes
-number_of_workers: 6
+number_of_workers: 1
 ## The directory with images
-input_pattern: E:\For_Ash\input\combined_first_second\*.tif
+input_pattern: /Users/jefflee/Desktop/for_ash_13sep/toll-difrnai/3/*.tif
 ## Output directoris - These directories will be created if they don't exist
-output_df_dir: E:\For_Ash\output\combined_first_second_df
-output_mask_dir: E:\For_Ash\output\combined_first_second_mask
+output_df_dir: /Users/jefflee/Desktop/for_ash_13sep/toll-difrnai/3/output_df
+output_mask_dir: /Users/jefflee/Desktop/for_ash_13sep/toll-difrnai/3/output_mask
 
 ## - - - - - Segmentation configuration
 ## Segmentation channel and filtering
@@ -22,7 +22,7 @@ flow_threshold: 0
 mask_threshold: -5
 do_3D: True
 stitch_threshold: 0
-gpu: True
+gpu: False
 
 ## - - - - - Mask manipulation configuration
 expansion_px: 2
@@ -30,5 +30,9 @@ expansion_px: 2
 ## - - - - - GFP channel configuration 
 GFP_channel: 0
 bgs_radius: 20
+
+## - - - - - other channel configuration
+process_other_channel: True
+other_channel: 1
 
 # cd /d D:Jeff_Davis-lab\Github\Image-analysis\people\Ash_U

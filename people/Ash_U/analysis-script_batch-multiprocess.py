@@ -131,7 +131,35 @@ def image_processing_function(image_loc, config):
     # - - - - - Combine nuclear + GFP dataframes
     
     output_df = nuc_df.merge(GFP_df, on = "label", how = "left")
-    
+
+    # - - - - - Process other channels
+
+    if config["process_other_channel"] == True:
+        other_channel = config["other_channel"]
+        bgs_radius = config["bgs_radius"]
+
+        other_img = img[:, other_channel, :, :]
+
+        other_bgs = []
+        for z in other_img:
+            other_bgs_slice = subtract_background(z, bgs_radius)
+            other_bgs.append(other_bgs_slice)
+        other_img = np.array(other_bgs)
+
+        ## Measure other fluorescence intensity against nuclear mask
+        other_regionprops = measure.regionprops_table(
+            label_image = masks,
+            intensity_image = other_img,
+            properties = ("label", "area", "image_intensity")
+        )
+
+        other_df = pd.DataFrame(other_regionprops)
+        other_df["other_intensity_sum"] = other_df["image_intensity"].transform(lambda x: np.sum(x))
+        other_df = other_df[["label", "other_intensity_sum"]]
+
+        output_df = output_df.merge(other_df, on = "label", how = "left")
+
+
     # - - - - - Save output
     
     df_output_path = pathlib.Path(config["output_df_dir"]).joinpath(f"{img_name}_output_df.csv")

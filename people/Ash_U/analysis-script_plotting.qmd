@@ -1,0 +1,2068 @@
+
+## Environment
+
+```{r}
+library(tidyverse)
+library(patchwork)
+library(rstatix)
+library(ggbeeswarm)
+library(furrr)
+library(ggprism)
+
+plan(multisession, workers = 8)
+```
+
+## Using esg and Toll (12d) (box plot with w1118 and Toll10b)
+
+```{r}
+## Clean up
+output_files <- list.files("/Users/jefflee/Documents/Github/Image-analysis/people/Ash_U/output/combined_first_second_df", 
+                           pattern = "*.csv", 
+                           full.names = TRUE) %>%
+  set_names(~basename(.x) %>% tools::file_path_sans_ext())
+
+df_raw <- output_files %>%
+  future_map_dfr(~ read_csv(.x), .id = "filename", .progress = TRUE) 
+
+df_annotated <- df_raw %>%
+  janitor::clean_names() %>%
+  dplyr::select(-x1) %>%
+  mutate(genotype = case_when(
+    str_detect(filename, "esg") ~ "esg",
+    str_detect(filename, "toll") ~ "toll",
+    str_detect(filename, "bsk") ~ "bsk",
+    TRUE ~ "Unidentified"
+  )) %>%
+  mutate(age = str_extract(filename, "[:digit:]+d")) %>%
+  mutate(age = case_when(
+    age == "22d" ~ "22d",
+    TRUE ~ "12d"
+  )) %>%
+  mutate(experiment = str_extract(filename, "exp[:upper:]")) %>%
+  mutate(GFP_intensity_density = gfp_intensity_sum / doughnut_area) %>%
+  dplyr::rename("centroid_z" = centroid_0, "centroid_y" = centroid_1, "centroid_x" = centroid_2)
+
+## Set nuclear size threshold
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = axis_major_length)) + 
+  geom_vline(xintercept = 7, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() +
+  facet_wrap(~ experiment + age)
+
+df_nucsize <- df_annotated %>%
+  filter(axis_major_length > 2) %>%
+  mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
+
+## Set GFP threshold
+esg_GFP_control <- df_nucsize %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_GFPnorm <- df_nucsize %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.25) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm_thresholded <- df_GFPnorm %>%
+  filter(!(nuclear_size == "small" & norm_GFP_intensity_density < 1.25)) %>%
+  mutate(GFP_positive = if_else(norm_GFP_intensity_density > 1.5, TRUE, FALSE))
+
+df_existing <- df_GFPnorm_thresholded
+
+```
+
+### GFP+ cells/ Total cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  filter(!str_detect(genotype, "bsk")) %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_01/esg_toll_GFPpos.pdf", width = 5.5, height = 5)
+
+```
+
+### Small nuclei GFP+ cells/ total small nuclei cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  filter(!str_detect(genotype, "bsk")) %>%
+  filter(nuclear_size == "small") %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ small nuclei cells / Total small nuclei cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_01/esg_toll_GFPpos_smallnuc.pdf", width = 5.5, height = 5)
+```
+
+### Big nuceli GFP+ cell/ Total big nuclei cells.
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  filter(!str_detect(genotype, "bsk")) %>%
+  filter(nuclear_size == "large") %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ large nuclei cells / Total large nuclei cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_01/esg_toll_GFPpos_largenuc.pdf", width = 5.5, height = 5)
+```
+
+### Small nuclei/total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  filter(!str_detect(genotype, "bsk")) %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    smallnuc_cellcount = sum(nuclear_size == "small")
+  ) %>%
+  ungroup() %>%
+  mutate(smallnuc_pct = smallnuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(smallnuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = smallnuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Small nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_01/esg_toll_smallnuc_pct.pdf", width = 5.5, height = 5)
+```
+
+### Big nuclei total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  filter(!str_detect(genotype, "bsk")) %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    largenuc_cellcount = sum(nuclear_size == "large")
+  ) %>%
+  ungroup() %>%
+  mutate(largenuc_pct = largenuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(largenuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = largenuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Large nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_01/esg_toll_largenuc_pct.pdf", width = 5.5, height = 5)
+```
+
+## Using esg , Toll and bskDN(12d)----Already given data Keep the already existing graphs,
+
+### GFP+ cells/ Total cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  tukey_hsd(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "steelblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    bsk = expression(Toll^"10b" + Bsk^"DN")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_02/esg_toll_bsk_GFPpos.pdf", width = 5.5, height = 5)
+```
+
+### Small nuclei GFP+ cells/ total small nuclei cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  group_by(filename, genotype) %>%
+  filter(nuclear_size == "small") %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  tukey_hsd(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ small nuclei cells / Total small nuclei cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "steelblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    bsk = expression(Toll^"10b" + Bsk^"DN")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_02/esg_toll_bsk_GFPpos_smallnuc.pdf", width = 5.5, height = 5)
+```
+
+### Big nuceli GFP+ cell/ Total big nuclei cells.
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  group_by(filename, genotype) %>%
+  filter(nuclear_size == "large") %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  tukey_hsd(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ large nuclei cells / Total large nuclei cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "steelblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    bsk = expression(Toll^"10b" + Bsk^"DN")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_02/esg_toll_bsk_GFPpos_largenuc.pdf", width = 5.5, height = 5)
+```
+
+### Small nuclei/total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    smallnuc_cellcount = sum(nuclear_size == "small")
+  ) %>%
+  ungroup() %>%
+  mutate(smallnuc_pct = smallnuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  tukey_hsd(smallnuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = smallnuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Small nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "steelblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    bsk = expression(Toll^"10b" + Bsk^"DN")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_02/esg_toll_bsk_smallnuc.pdf", width = 5.5, height = 5)
+```
+
+### Big nuclei total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  filter(age == "12d") %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    largenuc_cellcount = sum(nuclear_size == "large")
+  ) %>%
+  ungroup() %>%
+  mutate(largenuc_pct = largenuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  tukey_hsd(largenuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = largenuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Large nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "steelblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    bsk = expression(Toll^"10b" + Bsk^"DN")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_02/esg_toll_bsk_largenuc.pdf", width = 5.5, height = 5)
+```
+
+
+## Pros folder 03
+
+```{r}
+process_files <- function(output_dir, exp_name) {
+    output_files_A <- list.files(
+        output_dir,
+        pattern = "*.csv",
+        full.names = TRUE
+    ) %>%
+        set_names(~ basename(.x) %>% tools::file_path_sans_ext())
+
+    df_annotated <- output_files_A %>%
+        future_map_dfr(~ read_csv(.x), .id = "filename", .progress = TRUE) %>%
+        janitor::clean_names() %>%
+        dplyr::select(-x1) %>%
+        mutate(genotype = case_when(
+            str_detect(filename, "toll") ~ "toll",
+            str_detect(filename, "bsk") ~ "bsk",
+            str_detect(filename, "esg") ~ "esg",
+            TRUE ~ "NA"
+        )) %>%
+        mutate(age = str_extract(filename, "[:digit:]+d")) %>%
+        mutate(age = case_when(
+            age == "22d" ~ "22d",
+            TRUE ~ "12d"
+        )) %>%
+        mutate(GFP_intensity_density = gfp_intensity_sum / doughnut_area) %>%
+        dplyr::rename("centroid_z" = centroid_0, "centroid_y" = centroid_1, "centroid_x" = centroid_2) %>%
+        mutate(experiment = exp_name)
+}
+```
+
+### Data wrangling
+
+```{r}
+##
+df_annotated_A <- process_files("/Users/jefflee/Desktop/for_ash_13sep/pros/1/output_df", "expA") %>%
+  mutate(pros_intensity_density = other_intensity_sum / area)
+
+df_annotated_B <- process_files("/Users/jefflee/Desktop/for_ash_13sep/pros/1/output_df", "expB") %>%
+  mutate(pros_intensity_density = other_intensity_sum / area)
+
+df_annotated <- bind_rows(df_annotated_A, df_annotated_B)
+
+## Set nuclear size threshold
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = axis_major_length)) + 
+  geom_vline(xintercept = 7, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() +
+  facet_wrap(~ experiment + age)
+
+df_nucsize <- df_annotated %>%
+  filter(axis_major_length > 2) %>%
+  mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
+
+## Set GFP threshold
+esg_GFP_control <- df_nucsize %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_GFPnorm <- df_nucsize %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.25) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm_thresholded <- df_GFPnorm %>%
+  filter(!(nuclear_size == "small" & norm_GFP_intensity_density < 1.25)) %>%
+  mutate(GFP_positive = if_else(norm_GFP_intensity_density > 1.5, TRUE, FALSE))
+
+## Set pros threshold
+esg_pros_control <- df_GFPnorm_thresholded %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_pros_density = mean(pros_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_prosnorm <- df_GFPnorm_thresholded %>%
+  left_join(esg_pros_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_pros_intensity_density = pros_intensity_density / esg_pros_density) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+df_prosnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_pros_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_prosnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_pros_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.5) + 
+  facet_wrap(~ experiment) 
+
+df_prosnorm_thresholded <- df_prosnorm %>%
+  mutate(pros_positive = if_else(norm_pros_intensity_density > 1.5, TRUE, FALSE))
+
+
+```
+
+### Pros+ cells per total cells
+
+```{r}
+df <- df_prosnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive),
+    Prospos_cellcount = sum(pros_positive),
+    Prospos_GFPpos_cellcount = sum(pros_positive == TRUE & GFP_positive == TRUE),
+    Prospos_GFPneg_cellcount = sum(pros_positive == TRUE & GFP_positive == FALSE),
+  ) %>%
+  ungroup() %>%
+  mutate(
+    GFPpos_pct = GFPpos_cellcount / total_cellcount * 100,
+    Prospos_pct = Prospos_cellcount / total_cellcount * 100,
+    Prospos_GFPpos_pct = Prospos_GFPpos_cellcount / total_cellcount * 100,
+    Prospos_GFPneg_pct = Prospos_GFPneg_cellcount / total_cellcount * 100,
+    ) 
+
+stat <- df %>%
+  t_test(Prospos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = Prospos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Pros+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_03/Prospos-per-totalcells.pdf", width = 5.5, height = 5)
+```
+
+### Pros+ & GFP+ cells 
+
+```{r}
+df <- df_prosnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive),
+    Prospos_cellcount = sum(pros_positive),
+    Prospos_GFPpos_cellcount = sum(pros_positive == TRUE & GFP_positive == TRUE),
+    Prospos_GFPneg_cellcount = sum(pros_positive == TRUE & GFP_positive == FALSE),
+  ) %>%
+  ungroup() %>%
+  mutate(
+    GFPpos_pct = GFPpos_cellcount / total_cellcount * 100,
+    Prospos_pct = Prospos_cellcount / total_cellcount * 100,
+    Prospos_GFPpos_pct = Prospos_GFPpos_cellcount / total_cellcount * 100,
+    Prospos_GFPneg_pct = Prospos_GFPneg_cellcount / total_cellcount * 100,
+    ) 
+
+stat <- df %>%
+  t_test(Prospos_GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = Prospos_GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Pros+ & GFP+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_03/Prospos_GFPpos-per-totalcells.pdf", width = 5.5, height = 5)
+```
+
+### Pros+ & GFP- cells
+
+```{r}
+df <- df_prosnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive),
+    Prospos_cellcount = sum(pros_positive),
+    Prospos_GFPpos_cellcount = sum(pros_positive == TRUE & GFP_positive == TRUE),
+    Prospos_GFPneg_cellcount = sum(pros_positive == TRUE & GFP_positive == FALSE),
+  ) %>%
+  ungroup() %>%
+  mutate(
+    GFPpos_pct = GFPpos_cellcount / total_cellcount * 100,
+    Prospos_pct = Prospos_cellcount / total_cellcount * 100,
+    Prospos_GFPpos_pct = Prospos_GFPpos_cellcount / total_cellcount * 100,
+    Prospos_GFPneg_pct = Prospos_GFPneg_cellcount / total_cellcount * 100,
+    ) 
+
+stat <- df %>%
+  t_test(Prospos_GFPneg_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = Prospos_GFPneg_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Pros+ & GFP- cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_03/Prospos_GFPneg-per-totalcells.pdf", width = 5.5, height = 5)
+```
+
+## Toll dif RNAi folder 04
+
+### Data wrangling
+
+```{r}
+## Existing toll
+df_existing_toll <- df_existing %>%
+  filter(genotype == "toll")
+
+##
+df_annotated_A <- process_files("/Users/jefflee/Desktop/for_ash_13sep/toll-difrnai/1/output_df", "expA") %>%
+  mutate(pros_intensity_density = other_intensity_sum / area)
+df_annotated_B <- process_files("/Users/jefflee/Desktop/for_ash_13sep/toll-difrnai/2/output_df", "expB") %>%
+  mutate(pros_intensity_density = other_intensity_sum / area)
+df_annotated_C <- process_files("/Users/jefflee/Desktop/for_ash_13sep/toll-difrnai/3/output_df", "expC") %>%
+  mutate(pros_intensity_density = other_intensity_sum / area)
+
+df_annotated <- bind_rows(df_annotated_A, df_annotated_B, df_annotated_C) %>%
+  mutate(genotype = if_else(genotype == "toll", "tolldif", genotype))
+
+## Set nuclear size threshold
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = axis_major_length)) + 
+  geom_vline(xintercept = 7, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() +
+  facet_wrap(~ experiment + age)
+
+df_nucsize <- df_annotated %>%
+  filter(axis_major_length > 2) %>%
+  mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
+
+## Set GFP threshold
+esg_GFP_control <- df_nucsize %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_GFPnorm <- df_nucsize %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
+#   mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.25) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm_thresholded <- df_GFPnorm %>%
+  filter(!(nuclear_size == "small" & norm_GFP_intensity_density < 1.25)) %>%
+  mutate(GFP_positive = if_else(norm_GFP_intensity_density > 1.5, TRUE, FALSE))
+
+
+df_GFPnorm_thresholded <- bind_rows(df_GFPnorm_thresholded, df_existing_toll)
+
+```
+
+### GFP+ cells per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  tukey_hsd(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "red")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    tolldif = expression(Toll^"10b" + Dif^"RNAi")
+
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_04/esg-toll-tolldif_GFPpos.pdf", width = 5.5, height = 5)
+```
+
+### Total cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  tukey_hsd(total_cellcount ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = total_cellcount, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Total cell counts",
+    x = "Genotype",
+    y = "Cell count"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "red")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    tolldif = expression(Toll^"10b" + Dif^"RNAi")
+
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_04/esg-toll-tolldif_total-cellcount.pdf", width = 5.5, height = 5)
+```
+
+### Large cells per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    largenuc_cellcount = sum(nuclear_size == "large")
+  ) %>%
+  ungroup() %>%
+  mutate(largenuc_pct = largenuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  tukey_hsd(largenuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = largenuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "large nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "red")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    tolldif = expression(Toll^"10b" + Dif^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_04/esg-toll-tolldif_largenuc.pdf", width = 5.5, height = 5)
+```
+
+### Small cells per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    smallnuc_cellcount = sum(nuclear_size == "small")
+  ) %>%
+  ungroup() %>%
+  mutate(smallnuc_pct = smallnuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  tukey_hsd(smallnuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = smallnuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Small nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "red")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    tolldif = expression(Toll^"10b" + Dif^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_04/esg-toll-tolldif_smallnuc.pdf", width = 5.5, height = 5)
+
+```
+
+## Cactus RNAi folder 05
+
+### Data wrangling
+
+```{r}
+## Existing toll
+df_existing_toll <- df_existing %>%
+  filter(genotype == "toll")
+
+##
+df_annotated_A <- process_files("/Users/jefflee/Desktop/for_ash_13sep/cactusrnai/1/output_df", "expA") %>%
+  mutate(pros_intensity_density = other_intensity_sum / area)
+df_annotated_B <- process_files("/Users/jefflee/Desktop/for_ash_13sep/cactusrnai/2/output_df", "expB") %>%
+  mutate(pros_intensity_density = other_intensity_sum / area)
+
+df_annotated <- bind_rows(df_annotated_A, df_annotated_B) %>%
+  mutate(genotype = if_else(str_detect(filename, "cactus"), "cactus", genotype))
+
+## Set nuclear size threshold
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = axis_major_length)) + 
+  geom_vline(xintercept = 7, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() +
+  facet_wrap(~ experiment + age)
+
+df_nucsize <- df_annotated %>%
+  filter(axis_major_length > 2) %>%
+  mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
+
+## Set GFP threshold
+esg_GFP_control <- df_nucsize %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_GFPnorm <- df_nucsize %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
+#   mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.25) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm_thresholded <- df_GFPnorm %>%
+  filter(!(nuclear_size == "small" & norm_GFP_intensity_density < 1.25)) %>%
+  mutate(GFP_positive = if_else(norm_GFP_intensity_density > 1.5, TRUE, FALSE))
+
+
+df_GFPnorm_thresholded <- bind_rows(df_GFPnorm_thresholded, df_existing_toll)
+
+```
+
+### GFP+ cells per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "cactus")))
+
+stat <- df %>%
+  tukey_hsd(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "skyblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    cactus = expression(Cactus^"RNAi")
+
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_05/esg-toll-cactus_GFPpos.pdf", width = 5.5, height = 5)
+```
+
+### Total cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "cactus")))
+
+stat <- df %>%
+  tukey_hsd(total_cellcount ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = total_cellcount, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Total cell counts",
+    x = "Genotype",
+    y = "Cell count"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "skyblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    cactus = expression(Cactus^"RNAi")
+
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_05/esg-toll-cactus_total-cellcount.pdf", width = 5.5, height = 5)
+```
+
+### Large cells per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    largenuc_cellcount = sum(nuclear_size == "large")
+  ) %>%
+  ungroup() %>%
+  mutate(largenuc_pct = largenuc_cellcount / total_cellcount * 100) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "cactus")))
+
+stat <- df %>%
+  tukey_hsd(largenuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = largenuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "large nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "skyblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    cactus = expression(Cactus^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_05/esg-toll-cactus_largenuc.pdf", width = 5.5, height = 5)
+```
+
+### Large GFP + per total large cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    largenuc_cellcount = sum(nuclear_size == "large"),
+    largenuc_GFPpos_cellcount = sum(nuclear_size == "large" & GFP_positive == TRUE)
+  ) %>%
+  ungroup() %>%
+  mutate(largenuc_GFPpos_pct = largenuc_GFPpos_cellcount / largenuc_cellcount * 100) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "cactus")))
+
+stat <- df %>%
+  tukey_hsd(largenuc_GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = largenuc_GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ large nuclei cells / Large cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "skyblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    cactus = expression(Cactus^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_05/esg-toll-cactus_largenuc-and-GFPpos.pdf", width = 5.5, height = 5)
+```
+
+### Small cells per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    smallnuc_cellcount = sum(nuclear_size == "small")
+  ) %>%
+  ungroup() %>%
+  mutate(smallnuc_pct = smallnuc_cellcount / total_cellcount * 100) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "cactus")))
+
+stat <- df %>%
+  tukey_hsd(smallnuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = smallnuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Small nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "skyblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    cactus = expression(Cactus^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_05/esg-toll-cactus_smallnuc.pdf", width = 5.5, height = 5)
+
+```
+
+### Small GFP + per total small cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype) %>%
+  summarise(
+    total_cellcount = n(),
+    smallnuc_cellcount = sum(nuclear_size == "small"),
+    smallnuc_GFPpos_cellcount = sum(nuclear_size == "small" & GFP_positive == TRUE)
+  ) %>%
+  ungroup() %>%
+  mutate(smallnuc_GFPpos_pct = smallnuc_GFPpos_cellcount / smallnuc_cellcount * 100) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "cactus")))
+
+stat <- df %>%
+  tukey_hsd(smallnuc_GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = smallnuc_GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ small nuclei cells / small cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.adj.signif}") +
+  scale_fill_manual(values = c("gray60", "coral", "skyblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b"),
+    cactus = expression(Cactus^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_05/esg-toll-cactus_smallnuc-and-GFPpos.pdf", width = 5.5, height = 5)
+```
+
+## Bsk control folder 06
+
+### Data wrangling
+
+```{r}
+##
+df_annotated <- process_files("/Users/jefflee/Desktop/for_ash_13sep/bsk control/1/output_df", "expA")
+
+## Set nuclear size threshold
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = axis_major_length)) + 
+  geom_vline(xintercept = 7, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() +
+  facet_wrap(~ experiment + age)
+
+df_nucsize <- df_annotated %>%
+  filter(axis_major_length > 2) %>%
+  mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
+
+## Set GFP threshold
+esg_GFP_control <- df_nucsize %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_GFPnorm <- df_nucsize %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.25) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm_thresholded <- df_GFPnorm %>%
+#   filter(!(nuclear_size == "small" & norm_GFP_intensity_density < 1.25)) %>%
+  mutate(GFP_positive = if_else(norm_GFP_intensity_density > 1.5, TRUE, FALSE))
+
+```
+
+### GFP+ cells per total cells 
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Bsk control GFP+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "steelblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    bsk = expression(Bsk^"DN")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_06/bsk-control_GFPpos.pdf", width = 5.5, height = 5)
+```
+
+### Large cells per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    largenuc_cellcount = sum(nuclear_size == "large")
+  ) %>%
+  ungroup() %>%
+  mutate(largenuc_pct = largenuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(largenuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = largenuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Bsk control large nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "steelblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    bsk = expression(Bsk^"DN")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_06/bsk-control_largenuc.pdf", width = 5.5, height = 5)
+```
+
+### Small cells per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    smallnuc_cellcount = sum(nuclear_size == "small")
+  ) %>%
+  ungroup() %>%
+  mutate(smallnuc_pct = smallnuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(smallnuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = smallnuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Bsk control small nuclei cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "steelblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    bsk = expression(Bsk^"DN")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_06/bsk-control_smallnuc.pdf", width = 5.5, height = 5)
+```
+
+### Total cell count
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    smallnuc_cellcount = sum(nuclear_size == "small")
+  ) %>%
+  ungroup() %>%
+  mutate(smallnuc_pct = smallnuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(total_cellcount ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = total_cellcount, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Bsk control total cell counts per image",
+    x = "Genotype",
+    y = "Cell count"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "steelblue")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    bsk = expression(Bsk^"DN")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_06/bsk-control_total-cellcount.pdf", width = 5.5, height = 5)
+```
+
+\newpage
+
+
+## ISC folder 07 
+
+### Data wrangling
+
+```{r}
+##
+output_files_A <- list.files(
+    "/Users/jefflee/Desktop/for_ash_13sep/ISC/1/output_df",
+    pattern = "*.csv", 
+    full.names = TRUE) %>%
+  set_names(~basename(.x) %>% tools::file_path_sans_ext())
+
+output_files_B <- list.files(
+    "/Users/jefflee/Desktop/for_ash_13sep/ISC/2/output_df",
+    pattern = "*.csv", 
+    full.names = TRUE) %>%
+  set_names(~basename(.x) %>% tools::file_path_sans_ext())
+
+df_annotated_A <- output_files_A %>%
+  future_map_dfr(~ read_csv(.x), .id = "filename", .progress = TRUE) %>% 
+  janitor::clean_names() %>%
+  dplyr::select(-x1) %>%
+  mutate(genotype = case_when(
+    str_detect(filename, "toll") ~ "toll",
+    TRUE ~ "esg"
+  )) %>%
+  mutate(age = str_extract(filename, "[:digit:]+d")) %>%
+  mutate(age = case_when(
+    age == "22d" ~ "22d",
+    TRUE ~ "12d"
+  )) %>%
+  mutate(GFP_intensity_density = gfp_intensity_sum / doughnut_area) %>%
+  dplyr::rename("centroid_z" = centroid_0, "centroid_y" = centroid_1, "centroid_x" = centroid_2) %>%
+  mutate(experiment = "expA") 
+
+df_annotated_B <- output_files_B %>%
+  future_map_dfr(~ read_csv(.x), .id = "filename", .progress = TRUE) %>% 
+  janitor::clean_names() %>%
+  dplyr::select(-x1) %>%
+  mutate(genotype = case_when(
+    str_detect(filename, "toll") ~ "toll",
+    TRUE ~ "esg"
+  )) %>%
+  mutate(age = str_extract(filename, "[:digit:]+d")) %>%
+  mutate(age = case_when(
+    age == "22d" ~ "22d",
+    TRUE ~ "12d"
+  )) %>%
+  mutate(GFP_intensity_density = gfp_intensity_sum / doughnut_area) %>%
+  dplyr::rename("centroid_z" = centroid_0, "centroid_y" = centroid_1, "centroid_x" = centroid_2) %>%
+  mutate(experiment = "expB") 
+
+df_annotated <- bind_rows(df_annotated_A, df_annotated_B)
+
+## Set nuclear size threshold
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = axis_major_length)) + 
+  geom_vline(xintercept = 7, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() +
+  facet_wrap(~ experiment + age)
+
+df_nucsize <- df_annotated %>%
+  filter(axis_major_length > 2) %>%
+  mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
+
+## Set GFP threshold
+esg_GFP_control <- df_nucsize %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_GFPnorm <- df_nucsize %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.25) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm_thresholded <- df_GFPnorm %>%
+#   filter(!(nuclear_size == "small" & norm_GFP_intensity_density < 1.25)) %>%
+  mutate(GFP_positive = if_else(norm_GFP_intensity_density > 1.5, TRUE, FALSE))
+
+```
+
+### GFP+ cells / total cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "ISC GFP+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_07/esg_toll_GFPpos.pdf", width = 5.5, height = 5)
+```
+
+### Total cells 
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(total_cellcount ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = total_cellcount, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "ISC Total cells",
+    x = "Genotype",
+    y = "Cell count"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_07/esg_toll_total-cellcount.pdf", width = 5.5, height = 5)
+```
+
+## Dif RNAi folder 08
+
+### Data wrangling
+
+```{r}
+##
+df_annotated <- process_files("/Users/jefflee/Desktop/for_ash_13sep/difrnai/1/output_df", "expA") %>%
+  mutate(genotype = if_else(genotype == "NA", "dif", genotype))
+
+## Set nuclear size threshold
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = axis_major_length)) + 
+  geom_vline(xintercept = 7, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() +
+  facet_wrap(~ experiment + age)
+
+df_nucsize <- df_annotated %>%
+  filter(axis_major_length > 2) %>%
+  mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
+
+## Set GFP threshold
+esg_GFP_control <- df_nucsize %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_GFPnorm <- df_nucsize %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.25) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm_thresholded <- df_GFPnorm %>%
+#   filter(!(nuclear_size == "small" & norm_GFP_intensity_density < 1.25)) %>%
+  mutate(GFP_positive = if_else(norm_GFP_intensity_density > 1.5, TRUE, FALSE))
+```
+
+### GFPpos per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive)
+  ) %>%
+  ungroup() %>%
+  mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(GFPpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = GFPpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "GFP+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "magenta")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    dif = expression(Dif^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_08/esg_difrnai_GFPpos.pdf", width = 5.5, height = 5)
+```
+
+### Large per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    largenuc_cellcount = sum(nuclear_size == "large")
+  ) %>%
+  ungroup() %>%
+  mutate(largenuc_pct = largenuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(largenuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = largenuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Large nuclear cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "magenta")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    dif = expression(Dif^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_08/esg_difrnai_largenuc.pdf", width = 5.5, height = 5)
+```
+
+### Small per total
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    smallnuc_cellcount = sum(nuclear_size == "small")
+  ) %>%
+  ungroup() %>%
+  mutate(smallnuc_pct = smallnuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(smallnuc_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = smallnuc_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Small nuclear cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "magenta")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    dif = expression(Dif^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_08/esg_difrnai_smallnuc.pdf", width = 5.5, height = 5)
+```
+
+### Total cells
+
+```{r}
+df <- df_GFPnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    smallnuc_cellcount = sum(nuclear_size == "small")
+  ) %>%
+  ungroup() %>%
+  mutate(smallnuc_pct = smallnuc_cellcount / total_cellcount * 100) 
+
+stat <- df %>%
+  t_test(total_cellcount ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = total_cellcount, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Total cells",
+    x = "Genotype",
+    y = "Cell count"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "magenta")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    dif = expression(Dif^"RNAi")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_08/esg_difrnai_total-cellcount.pdf", width = 5.5, height = 5)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
