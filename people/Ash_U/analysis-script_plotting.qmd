@@ -583,7 +583,7 @@ process_files <- function(output_dir, exp_name) {
 df_annotated_A <- process_files("/Users/jefflee/Desktop/for_ash_13sep/pros/1/output_df", "expA") %>%
   mutate(pros_intensity_density = other_intensity_sum / area)
 
-df_annotated_B <- process_files("/Users/jefflee/Desktop/for_ash_13sep/pros/1/output_df", "expB") %>%
+df_annotated_B <- process_files("/Users/jefflee/Desktop/for_ash_13sep/pros/2/output_df", "expB") %>%
   mutate(pros_intensity_density = other_intensity_sum / area)
 
 df_annotated <- bind_rows(df_annotated_A, df_annotated_B)
@@ -2112,15 +2112,251 @@ df %>%
 ggsave("./plots/plots_Sep2023_08/esg_difrnai_total-cellcount.pdf", width = 5.5, height = 5)
 ```
 
+## Dllacz folder 09
 
+### Data wrangling
 
+```{r}
+##
+df_annotated_A <- process_files("/Users/jefflee/Desktop/for_ash_13sep/dllacz/1/output_df", "expA") %>%
+  mutate(dllacz_intensity_density = other_intensity_sum / area)
 
+df_annotated_B <- process_files("/Users/jefflee/Desktop/for_ash_13sep/dllacz/2/output_df", "expB") %>%
+  mutate(dllacz_intensity_density = other_intensity_sum / area)
 
+df_annotated <- bind_rows(df_annotated_A, df_annotated_B)
 
+## Set nuclear size threshold
+df_annotated %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = axis_major_length)) + 
+  geom_vline(xintercept = 7, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 14, linetype = "dashed", alpha = 0.5) + 
+  geom_vline(xintercept = 17.5, linetype = "dashed", alpha = 0.5) + 
+  geom_density() + 
+  theme_bw() +
+  facet_wrap(~ experiment + age)
 
+df_nucsize <- df_annotated %>%
+  filter(axis_major_length > 2) %>%
+  mutate(nuclear_size = if_else(axis_major_length > 17.5, "large", "small"))
 
+## Set GFP threshold
+esg_GFP_control <- df_nucsize %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_GFP_density = mean(GFP_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
 
+df_GFPnorm <- df_nucsize %>%
+  left_join(esg_GFP_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_GFP_intensity_density = GFP_intensity_density / esg_GFP_density) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
 
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_GFP_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.25) + 
+  facet_wrap(~ experiment) 
+
+df_GFPnorm_thresholded <- df_GFPnorm %>%
+  filter(!(nuclear_size == "small" & norm_GFP_intensity_density < 1.25)) %>%
+  mutate(GFP_positive = if_else(norm_GFP_intensity_density > 1.5, TRUE, FALSE))
+
+## Set dllacz threshold
+esg_dllacz_control <- df_GFPnorm_thresholded %>%
+  filter(genotype == "esg") %>%
+  group_by(experiment, nuclear_size, age) %>%
+  summarise(esg_dllacz_density = mean(dllacz_intensity_density, na.rm = TRUE)) %>%
+  ungroup()
+
+df_dllacznorm <- df_GFPnorm_thresholded %>%
+  left_join(esg_dllacz_control, by = c("experiment", "nuclear_size", "age")) %>%
+  mutate(norm_dllacz_intensity_density = dllacz_intensity_density / esg_dllacz_density) %>%
+  mutate(genotype = fct_relevel(genotype, c("esg", "toll", "bsk"))) %>%
+  mutate(nuclear_size = fct_relevel(nuclear_size, c("small", "large")))
+
+df_dllacznorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_dllacz_intensity_density)) +
+  geom_histogram(bins = 100) + 
+  geom_vline(xintercept = 2) + 
+  facet_wrap(~ experiment) 
+
+df_dllacznorm %>%
+  filter(age == "12d") %>%
+  filter(genotype == "esg") %>%
+  ggplot(aes(x = norm_dllacz_intensity_density, y = axis_major_length)) +
+  geom_point() + 
+  geom_vline(xintercept = 1.5) + 
+  facet_wrap(~ experiment) 
+
+df_dllacznorm_thresholded <- df_dllacznorm %>%
+  mutate(dllacz_positive = if_else(norm_dllacz_intensity_density > 1.5, TRUE, FALSE))
+```
+
+### Dl+ cells per total
+
+```{r}
+df <- df_dllacznorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive),
+    dllaczpos_cellcount = sum(dllacz_positive),
+    dllaczpos_GFPpos_cellcount = sum(dllacz_positive == TRUE & GFP_positive == TRUE),
+    dllaczpos_GFPneg_cellcount = sum(dllacz_positive == TRUE & GFP_positive == FALSE),
+  ) %>%
+  ungroup() %>%
+  mutate(
+    GFPpos_pct = GFPpos_cellcount / total_cellcount * 100,
+    dllaczpos_pct = dllaczpos_cellcount / total_cellcount * 100,
+    dllaczpos_GFPpos_pct = dllaczpos_GFPpos_cellcount / total_cellcount * 100,
+    dllaczpos_GFPneg_pct = dllaczpos_GFPneg_cellcount / total_cellcount * 100,
+    ) 
+
+stat <- df %>%
+  t_test(dllaczpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = dllaczpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "LacZ+ cells / Total cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_09/dllaczpos-per-totalcells.pdf", width = 5.5, height = 5)
+```
+
+### Dl+ cells per total GFP+ cells
+
+```{r}
+df <- df_dllacznorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive),
+    dllaczpos_cellcount = sum(dllacz_positive),
+    dllaczpos_GFPpos_cellcount = sum(dllacz_positive == TRUE & GFP_positive == TRUE),
+    dllaczpos_GFPneg_cellcount = sum(dllacz_positive == TRUE & GFP_positive == FALSE),
+  ) %>%
+  ungroup() %>%
+  mutate(
+    GFPpos_pct = GFPpos_cellcount / total_cellcount * 100,
+    dllaczpos_pct_of_GFPpos = dllaczpos_GFPpos_cellcount / GFPpos_cellcount * 100,
+    dllaczpos_GFPpos_pct = dllaczpos_GFPpos_cellcount / total_cellcount * 100,
+    dllaczpos_GFPneg_pct = dllaczpos_GFPneg_cellcount / total_cellcount * 100,
+    ) 
+
+stat <- df %>%
+  t_test(dllaczpos_pct_of_GFPpos ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = dllaczpos_pct_of_GFPpos, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "LacZ+ & GFP+ cells / GFP+ cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_09/dllaczpos-GFPpos-per-GFPpos.pdf", width = 5.5, height = 5)
+```
+
+### Dl+ cells per small nuclei cells
+
+```{r}
+df <- df_dllacznorm_thresholded %>%
+  filter(nuclear_size == "small") %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive),
+    dllaczpos_cellcount = sum(dllacz_positive),
+    dllaczpos_GFPpos_cellcount = sum(dllacz_positive == TRUE & GFP_positive == TRUE),
+    dllaczpos_GFPneg_cellcount = sum(dllacz_positive == TRUE & GFP_positive == FALSE),
+  ) %>%
+  ungroup() %>%
+  mutate(
+    GFPpos_pct = GFPpos_cellcount / total_cellcount * 100,
+    dllaczpos_pct = dllaczpos_cellcount / total_cellcount * 100,
+    dllaczpos_GFPpos_pct = dllaczpos_GFPpos_cellcount / total_cellcount * 100,
+    dllaczpos_GFPneg_pct = dllaczpos_GFPneg_cellcount / total_cellcount * 100,
+    ) 
+
+stat <- df %>%
+  t_test(dllaczpos_pct ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = dllaczpos_pct, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "LacZ+ cells / Small nuclei cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_09/dllaczpos-per-smallnuc-cellcount.pdf", width = 5.5, height = 5)
+```
 
 
 

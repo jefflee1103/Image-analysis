@@ -7,10 +7,10 @@
 ## The number of processes in the pool of processes
 number_of_workers: 1
 ## The directory with images
-input_pattern: /Users/jefflee/Desktop/for_ash_13sep/toll-difrnai/3/*.tif
+input_pattern: /Users/jefflee/Desktop/for_ash_13sep/dllacz/2/*.tif
 ## Output directoris - These directories will be created if they don't exist
-output_df_dir: /Users/jefflee/Desktop/for_ash_13sep/toll-difrnai/3/output_df
-output_mask_dir: /Users/jefflee/Desktop/for_ash_13sep/toll-difrnai/3/output_mask
+output_df_dir: /Users/jefflee/Desktop/for_ash_13sep/dllacz/2/output_df
+output_mask_dir: /Users/jefflee/Desktop/for_ash_13sep/dllacz/2/output_mask
 
 ## - - - - - Segmentation configuration
 ## Segmentation channel and filtering
