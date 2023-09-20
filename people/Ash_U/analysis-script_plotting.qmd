@@ -142,17 +142,19 @@ ggsave("./plots/plots_Sep2023_01/esg_toll_GFPpos.pdf", width = 5.5, height = 5)
 ### Small nuclei GFP+ cells/ total small nuclei cells
 
 ```{r}
-df <- df_GFPnorm_thresholded %>%
+df <- df_existing %>%
   filter(age == "12d") %>%
   filter(!str_detect(genotype, "bsk")) %>%
   filter(nuclear_size == "small") %>%
-  group_by(filename, genotype) %>%
+  group_by(filename, genotype, experiment) %>%
   summarise(
     total_cellcount = n(),
     GFPpos_cellcount = sum(GFP_positive)
   ) %>%
   ungroup() %>%
   mutate(GFPpos_pct = GFPpos_cellcount / total_cellcount * 100) 
+
+  View(df)
 
 stat <- df %>%
   t_test(GFPpos_pct ~ genotype) %>%
@@ -819,6 +821,57 @@ df %>%
 ggsave("./plots/plots_Sep2023_03/Prospos_GFPneg-per-totalcells.pdf", width = 5.5, height = 5)
 ```
 
+### Pros+/GFP+ out of Pros+ 
+
+```{r}
+df <- df_prosnorm_thresholded %>%
+  group_by(filename, genotype, experiment) %>%
+  summarise(
+    total_cellcount = n(),
+    GFPpos_cellcount = sum(GFP_positive),
+    Prospos_cellcount = sum(pros_positive),
+    Prospos_GFPpos_cellcount = sum(pros_positive == TRUE & GFP_positive == TRUE),
+    Prospos_GFPneg_cellcount = sum(pros_positive == TRUE & GFP_positive == FALSE),
+  ) %>%
+  ungroup() %>%
+  mutate(
+    GFPpos_pct = GFPpos_cellcount / total_cellcount * 100,
+    Prospos_pct = Prospos_cellcount / total_cellcount * 100,
+    Prospos_GFPpos_pct = Prospos_GFPpos_cellcount / total_cellcount * 100,
+    Prospos_GFPpos_pct_Pros = Prospos_GFPpos_cellcount / Prospos_cellcount * 100,
+    Prospos_GFPneg_pct = Prospos_GFPneg_cellcount / total_cellcount * 100,
+    ) 
+
+stat <- df %>%
+  t_test(Prospos_GFPpos_pct_Pros ~ genotype) %>%
+  add_significance() %>%
+  add_xy_position()
+
+df %>%
+  ggplot(aes(x = genotype, y = Prospos_GFPpos_pct_Pros, fill = genotype)) +
+  geom_boxplot(width = 0.5) +
+  labs(
+    title = "Pros+ & GFP+ cells / Pros+ cells",
+    x = "Genotype",
+    y = "Percentage of cells"
+  ) + 
+  add_pvalue(data = stat, 
+             inherit.aes = FALSE,
+             label = "{p.signif}") +
+  scale_fill_manual(values = c("gray60", "coral")) + 
+  scale_x_discrete(labels = c(
+    esg = expression(W^1118),
+    toll = expression(Toll^"10b")
+  )) + 
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+    )
+
+ggsave("./plots/plots_Sep2023_03/Prospos_GFPpos-per-Prospos-cellcount.pdf", width = 5.5, height = 5)
+```
+
 ## Toll dif RNAi folder 04
 
 ### Data wrangling
@@ -1074,16 +1127,20 @@ ggsave("./plots/plots_Sep2023_04/esg-toll-tolldif_smallnuc.pdf", width = 5.5, he
 ```{r}
 ## Existing toll
 df_existing_toll <- df_existing %>%
+  mutate(genotype = as.character(genotype)) %>%
   filter(genotype == "toll")
 
+df_existing_toll$genotype %>% unique()
+
+
 ##
-df_annotated_A <- process_files("/Users/jefflee/Desktop/for_ash_13sep/cactusrnai/1/output_df", "expA") %>%
-  mutate(pros_intensity_density = other_intensity_sum / area)
-df_annotated_B <- process_files("/Users/jefflee/Desktop/for_ash_13sep/cactusrnai/2/output_df", "expB") %>%
-  mutate(pros_intensity_density = other_intensity_sum / area)
+df_annotated_A <- process_files("/Users/jefflee/Desktop/for_ash_13sep/cactusrnai/1/output_df", "expA")
+df_annotated_B <- process_files("/Users/jefflee/Desktop/for_ash_13sep/cactusrnai/2/output_df", "expB") 
 
 df_annotated <- bind_rows(df_annotated_A, df_annotated_B) %>%
   mutate(genotype = if_else(str_detect(filename, "cactus"), "cactus", genotype))
+
+df_annotated$genotype %>% unique()
 
 ## Set nuclear size threshold
 df_annotated %>%
@@ -1133,8 +1190,11 @@ df_GFPnorm_thresholded <- df_GFPnorm %>%
   filter(!(nuclear_size == "small" & norm_GFP_intensity_density < 1.25)) %>%
   mutate(GFP_positive = if_else(norm_GFP_intensity_density > 1.5, TRUE, FALSE))
 
+df_GFPnorm_thresholded$genotype %>% unique()
 
 df_GFPnorm_thresholded <- bind_rows(df_GFPnorm_thresholded, df_existing_toll)
+
+df_GFPnorm_thresholded$genotype %>% unique()
 
 ```
 
@@ -1365,6 +1425,7 @@ ggsave("./plots/plots_Sep2023_05/esg-toll-cactus_smallnuc.pdf", width = 5.5, hei
 ### Small GFP + per total small cells
 
 ```{r}
+##
 df <- df_GFPnorm_thresholded %>%
   group_by(filename, genotype) %>%
   summarise(
@@ -1373,6 +1434,7 @@ df <- df_GFPnorm_thresholded %>%
     smallnuc_GFPpos_cellcount = sum(nuclear_size == "small" & GFP_positive == TRUE)
   ) %>%
   ungroup() %>%
+  filter(!str_detect(filename, "22d")) %>%
   mutate(smallnuc_GFPpos_pct = smallnuc_GFPpos_cellcount / smallnuc_cellcount * 100) %>%
   mutate(genotype = fct_relevel(genotype, c("esg", "toll", "cactus")))
 
