@@ -1,0 +1,205 @@
+---
+title: "Probe design"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+# Objective
+
+Design FISH probes for ZsGreen and mCherry sequences in their positive and negative orientations to detect two SARS-CoV-2 strains. 
+Note that both fluorescent proteins are from similar coral species and have ~54% sequence similarity.
+Therefore, each sequence needs to be BLAST'ed to see if it would overlap with the other fluorophore sequence. 
+
+# smFISH probes
+
+```{r}
+## Environment
+library(tidyverse)
+library(Biostrings)
+library(metablastr)
+
+```
+
+## Stellaris-created sequences --> fasta file
+
+```{r}
+## Positive strand
+zsgreen_pos_raw <- read_csv("./probe_design/input/ZsGreen_pos_stellaris_output.csv")
+zsgreen_pos_biostring <- Biostrings::DNAStringSet(zsgreen_pos_raw$sequence)
+names(zsgreen_pos_biostring) <- zsgreen_pos_raw$name
+Biostrings::writeXStringSet(zsgreen_pos_biostring, "./probe_design/input/ZsGreen_pos_stellaris_output.fasta", format = "fasta")
+
+mcherry_pos_raw <- read_csv("./probe_design/input/mCherry_pos_stellaris_output.csv")
+mcherry_pos_biostring <- Biostrings::DNAStringSet(mcherry_pos_raw$sequence)
+names(mcherry_pos_biostring) <- mcherry_pos_raw$name
+Biostrings::writeXStringSet(mcherry_pos_biostring, "./probe_design/input/mCherry_pos_stellaris_output.fasta", format = "fasta")
+
+## Negative strand
+zsgreen_neg_raw <- read_csv("./probe_design/input/ZsGreen_neg_stellaris_output.csv")
+zsgreen_neg_biostring <- Biostrings::DNAStringSet(zsgreen_neg_raw$sequence)
+names(zsgreen_neg_biostring) <- zsgreen_neg_raw$name
+Biostrings::writeXStringSet(zsgreen_neg_biostring, "./probe_design/input/ZsGreen_neg_stellaris_output.fasta", format = "fasta")
+
+mcherry_neg_raw <- read_csv("./probe_design/input/mCherry_neg_stellaris_output.csv")
+mcherry_neg_biostring <- Biostrings::DNAStringSet(mcherry_neg_raw$sequence)
+names(mcherry_neg_biostring) <- mcherry_neg_raw$name
+Biostrings::writeXStringSet(mcherry_neg_biostring, "./probe_design/input/mCherry_neg_stellaris_output.fasta", format = "fasta")
+
+```
+
+## BLAST-short smFISH probe sequences to mCherry/ZsGreen
+
+Filter to have at least 5 mismatches out of 18nt sequence.
+
+```{r}
+blast_db <- "./probe_design/input/ZsGreen_mCherry_pos-neg.fa"
+
+## ZsGreen pos
+zsgreen_pos_blast <- blast_nucleotide_to_nucleotide(
+  query = "./probe_design/input/ZsGreen_pos_stellaris_output.fasta",
+  subject = blast_db,
+  task = "blastn-short",
+  evalue = 10,
+  strand = "plus"
+)
+
+to_remove <- zsgreen_pos_blast %>%
+  filter(subject_id != "ZsGreen_neg") %>%
+  filter(num_ident_matches > 13) %>%
+  pull(query_id) %>% unique()
+
+zsgreen_pos_anno <- zsgreen_pos_raw %>%
+  mutate(smFISH_target = "ZsGreen_pos") %>%
+  mutate(mask_level = str_extract(name, "mask[:digit:]")) %>%
+  mutate(entry_number = str_sub(name, -2, -1)) %>%
+  mutate(to_keep = if_else(name %in% to_remove, FALSE, TRUE))
+
+zsgreen_pos_anno %>%
+  group_by(smFISH_target, mask_level) %>%
+  summarise(
+    total_count = n(),
+    filter_count = sum(to_keep)
+  )
+
+## mCherry pos
+mcherry_pos_blast <- blast_nucleotide_to_nucleotide(
+  query = "./probe_design/input/mCherry_pos_stellaris_output.fasta",
+  subject = blast_db,
+  task = "blastn-short",
+  evalue = 10,
+  strand = "plus"
+)
+
+to_remove <- mcherry_pos_blast %>%
+  filter(subject_id != "mCherry_neg") %>%
+  filter(num_ident_matches > 13) %>%
+  pull(query_id) %>% unique()
+
+mcherry_pos_anno <- mcherry_pos_raw %>%
+  mutate(smFISH_target = "mCherry_pos") %>%
+  mutate(mask_level = str_extract(name, "mask[:digit:]")) %>%
+  mutate(entry_number = str_sub(name, -2, -1)) %>%
+  mutate(to_keep = if_else(name %in% to_remove, FALSE, TRUE))
+
+mcherry_pos_anno %>%
+  group_by(smFISH_target, mask_level) %>%
+  summarise(
+    total_count = n(),
+    filter_count = sum(to_keep)
+  )
+
+## ZsGreen neg
+zsgreen_neg_blast <- blast_nucleotide_to_nucleotide(
+  query = "./probe_design/input/ZsGreen_neg_stellaris_output.fasta",
+  subject = blast_db,
+  task = "blastn-short",
+  evalue = 10,
+  strand = "plus"
+)
+
+to_remove <- zsgreen_neg_blast %>%
+  filter(subject_id != "ZsGreen_pos") %>%
+  filter(num_ident_matches > 13) %>%
+  pull(query_id) %>% unique()
+
+zsgreen_neg_anno <- zsgreen_neg_raw %>%
+  mutate(smFISH_target = "ZsGreen_neg") %>%
+  mutate(mask_level = str_extract(name, "mask[:digit:]")) %>%
+  mutate(entry_number = str_sub(name, -2, -1)) %>%
+  mutate(to_keep = if_else(name %in% to_remove, FALSE, TRUE))
+
+zsgreen_neg_anno %>%
+  group_by(smFISH_target, mask_level) %>%
+  summarise(
+    total_count = n(),
+    filter_count = sum(to_keep)
+  )
+
+## mCherry neg
+mcherry_neg_blast <- blast_nucleotide_to_nucleotide(
+  query = "./probe_design/input/mCherry_neg_stellaris_output.fasta",
+  subject = blast_db,
+  task = "blastn-short",
+  evalue = 10,
+  strand = "plus"
+)
+
+to_remove <- mcherry_neg_blast %>%
+  filter(subject_id != "mCherry_pos") %>%
+  filter(num_ident_matches > 13) %>%
+  pull(query_id) %>% unique()
+
+mcherry_neg_anno <- mcherry_neg_raw %>%
+  mutate(smFISH_target = "mCherry_neg") %>%
+  mutate(mask_level = str_extract(name, "mask[:digit:]")) %>%
+  mutate(entry_number = str_sub(name, -2, -1)) %>%
+  mutate(to_keep = if_else(name %in% to_remove, FALSE, TRUE))
+
+mcherry_neg_anno %>%
+  group_by(smFISH_target, mask_level) %>%
+  summarise(
+    total_count = n(),
+    filter_count = sum(to_keep)
+  )
+
+```
+
+## Output smFISH probe sequences
+
+Select mask level 4.
+
+```{r}
+output <- bind_rows(
+  zsgreen_pos_anno,
+  zsgreen_neg_anno,
+  mcherry_pos_anno,
+  mcherry_neg_anno
+) %>%
+  filter(mask_level == "mask4") %>%
+  mutate(probe_id = str_c(smFISH_target, "_smFISH_", entry_number)) %>%
+  dplyr::select(probe_id, sequence)
+
+write_csv(output, "./probe_design/20230304_smFISH-probes_ZsGreen_mCherry.csv")
+
+```
+
+
+\newpage
+
+
+# HCR probes 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
