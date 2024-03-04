@@ -1,0 +1,253 @@
+---
+title: "Probe design"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+# Objective
+
+Design FISH probes for Mmus CCR1 that will distinguish its signal from CCR 2, 3, 5. 
+
+# smFISH probes
+
+```{r}
+## Environment
+library(tidyverse)
+library(Biostrings)
+library(metablastr)
+
+```
+
+## Explore CCR transcripts
+
+```{r}
+mmus_t2g <- read_csv("~/Documents/Github/HCRv3_probe_design_personal/data/Mmus_tx2gene_ENSEMBL_v99.csv")
+
+ccr_goi <- c("Ccr1", "Ccr2", "Ccr3", "Ccr5")
+
+mmus_t2g %>%
+  filter(gene_name %in% ccr_goi) %>%
+  group_by(gene_name) %>%
+  summarise(isoforms = n())
+
+```
+
+
+## Stellaris-created sequences --> fasta file
+
+```{r}
+## Exon
+stellaris_output_exon_raw <- read_csv("./probe_design/input/stellaris_output_exon.csv")
+stellaris_output_exon_biostring <- Biostrings::DNAStringSet(stellaris_output_exon_raw$sequence)
+names(stellaris_output_exon_biostring) <- stellaris_output_exon_raw$name
+Biostrings::writeXStringSet(stellaris_output_exon_biostring, "./probe_design/input/stellaris_output_exon.fasta", format = "fasta")
+
+## Intron
+stellaris_output_intron_raw <- read_csv("./probe_design/input/stellaris_output_intron.csv")
+stellaris_output_intron_biostring <- Biostrings::DNAStringSet(stellaris_output_intron_raw$sequence)
+names(stellaris_output_intron_biostring) <- stellaris_output_intron_raw$name
+Biostrings::writeXStringSet(stellaris_output_intron_biostring, "./probe_design/input/stellaris_output_intron.fasta", format = "fasta")
+
+```
+
+## BLAST-short to Ccr GOIs
+
+### Exons
+
+Filter to have at least 5 mismatches out of 18nt sequence.
+
+```{r}
+blast_db <- "./probe_design/input/Mmus_Ccr_goi_exon_combined.txt"
+
+stellaris_blast <- blast_nucleotide_to_nucleotide(
+  query = "./probe_design/input/stellaris_output_exon.fasta",
+  subject = blast_db,
+  task = "blastn-short",
+  evalue = 10,
+  # strand = "minus",
+  output.path = tempdir()
+)
+```
+
+#### Ccr1 exon
+
+```{r}
+min_mismatch <- 5
+
+problematic <- stellaris_blast %>%
+  filter(str_detect(query_id, "Ccr1")) %>%
+  filter(!str_detect(subject_id, "Ccr1")) %>%
+  filter(num_ident_matches >= 18 - min_mismatch) %>%
+  pull(query_id) %>% unique()
+
+Ccr1_anno <- stellaris_output_exon_raw %>%
+  filter(str_detect(name, "Ccr1")) %>%
+  # filter(!(name %in% problematic)) %>%
+  mutate(mask_level = str_extract(name, "mask[:digit:]")) %>%
+  mutate(entry_number = str_sub(name, -2, -1)) %>%
+  mutate(to_keep = if_else(name %in% problematic, FALSE, TRUE))
+
+Ccr1_anno %>%
+  group_by(mask_level) %>%
+  summarise(
+    total_count = n(),
+    filter_count = sum(to_keep)
+  )
+
+```
+
+#### Ccr2 exon
+
+```{r}
+min_mismatch <- 4
+
+problematic <- stellaris_blast %>%
+  filter(str_detect(query_id, "Ccr2")) %>%
+  filter(!str_detect(subject_id, "Ccr2")) %>%
+  filter(num_ident_matches >= 18 - min_mismatch) %>%
+  pull(query_id) %>% unique()
+
+Ccr2_anno <- stellaris_output_exon_raw %>%
+  filter(str_detect(name, "Ccr2")) %>%
+  # filter(!(name %in% problematic)) %>%
+  mutate(mask_level = str_extract(name, "mask[:digit:]")) %>%
+  mutate(entry_number = str_sub(name, -2, -1)) %>%
+  mutate(to_keep = if_else(name %in% problematic, FALSE, TRUE))
+
+Ccr2_anno %>%
+  group_by(mask_level) %>%
+  summarise(
+    total_count = n(),
+    filter_count = sum(to_keep)
+  )
+
+```
+
+#### Combine exon probes for ordering
+
+```{r}
+output_exon <- bind_rows(
+  Ccr1_anno,
+  Ccr2_anno
+) %>%
+  filter(to_keep == TRUE) %>%
+  filter(mask_level == "mask4") %>%
+  mutate(probe_name = str_replace(name, "_mask[:digit:]", "")) %>%
+  dplyr::select(probe_name, sequence) %>%
+  arrange(probe_name)
+
+nrow(output_exon)
+
+write_csv(output_exon, "20240304_Ccr1_Ccr2_exon_smFISH_probes.csv")
+
+```
+
+
+### Introns
+
+Filter to have at least 5 mismatches out of 18nt sequence.
+
+```{r}
+blast_db <- "./probe_design/input/Mmus_Ccr_goi_fullcDNA_combined.fa"
+
+stellaris_blast <- blast_nucleotide_to_nucleotide(
+  query = "./probe_design/input/stellaris_output_intron.fasta",
+  subject = blast_db,
+  task = "blastn-short",
+  evalue = 10,
+  # strand = "minus",
+  output.path = tempdir()
+)
+```
+
+#### Ccr1 intron
+
+```{r}
+min_mismatch <- 5
+
+problematic <- stellaris_blast %>%
+  filter(str_detect(query_id, "Ccr1")) %>%
+  filter(!str_detect(subject_id, "Ccr1")) %>%
+  filter(num_ident_matches >= 20 - min_mismatch) %>%
+  pull(query_id) %>% unique()
+
+Ccr1_anno <- stellaris_output_intron_raw %>%
+  filter(str_detect(name, "Ccr1")) %>%
+  # filter(!(name %in% problematic)) %>%
+  mutate(mask_level = str_extract(name, "mask[:digit:]")) %>%
+  mutate(entry_number = str_sub(name, -2, -1)) %>%
+  mutate(to_keep = if_else(name %in% problematic, FALSE, TRUE)) %>%
+  group_by(to_keep) %>%
+  slice_head(n = 48) %>%
+  ungroup()
+
+Ccr1_anno %>%
+  group_by(mask_level) %>%
+  summarise(
+    total_count = n(),
+    filter_count = sum(to_keep)
+  )
+
+```
+
+#### Ccr2 intron
+
+```{r}
+min_mismatch <- 5
+
+problematic <- stellaris_blast %>%
+  filter(str_detect(query_id, "Ccr2")) %>%
+  filter(!str_detect(subject_id, "Ccr2")) %>%
+  filter(num_ident_matches >= 20 - min_mismatch) %>%
+  pull(query_id) %>% unique()
+
+Ccr2_anno <- stellaris_output_intron_raw %>%
+  filter(str_detect(name, "Ccr2")) %>%
+  # filter(!(name %in% problematic)) %>%
+  mutate(mask_level = str_extract(name, "mask[:digit:]")) %>%
+  mutate(entry_number = str_sub(name, -2, -1)) %>%
+  mutate(to_keep = if_else(name %in% problematic, FALSE, TRUE))
+
+Ccr2_anno %>%
+  group_by(mask_level) %>%
+  summarise(
+    total_count = n(),
+    filter_count = sum(to_keep)
+  )
+
+```
+
+#### Combine intron probes for ordering
+
+```{r}
+output_intron <- bind_rows(
+  Ccr1_anno,
+  Ccr2_anno
+) %>%
+  filter(to_keep == TRUE) %>%
+  filter(mask_level == "mask5") %>%
+  mutate(probe_name = str_replace(name, "_mask[:digit:]", "")) %>%
+  dplyr::select(probe_name, sequence) %>%
+  arrange(probe_name)
+
+write_csv(output_intron, "20240304_Ccr1_Ccr2_intron_smFISH_probes.csv")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

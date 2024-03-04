@@ -1,0 +1,377 @@
+---
+title: "HCR probe design"
+format: html
+output-file: output/output.pdf
+editor_options: 
+  chunk_output_type: console
+---
+
+## Update
+
+Modified: 2024.01.06
+
+## Environment
+
+Requires installation of blastn (see README.md).
+
+```{r}
+## ---- R packages 
+library(tidyverse) 
+library(furrr) 
+library(patchwork) 
+library(valr) 
+library(Biostrings) # Bioconductor
+library(metablastr) # Github
+
+## ---- Load functions
+source("./R/HCR_design.R")
+Sys.which("blastn") # check R can find the BLAST installation
+
+## ---- Set up multi-threading to speed up some calculation
+n_threads <- 4
+plan(multisession, workers = n_threads) 
+
+```
+
+
+## Prepare tiled candidate probes from the target RNA sequence 
+
+This chunk will take a FASTA file as input. To prevent probe design across exon-intron junctions do either of the following:
+
+  (1) Put character N between exons in case of one single fasta entry; or
+  (2) Set each exon as separate fasta entries in a single fasta file. 
+  
+Alternatively, assign target sequence (character class) to 'target_raw'. 
+
+```{r}
+## ---- Input FASTA and name
+fasta_file <- "./probe_design/input/ZsGreen_neg.fa" 
+target_name <- "ZsGreen_neg"
+
+## ---- Get target RNA sequence
+target_fasta <- readDNAStringSet(fasta_file)
+target_raw <- paste(target_fasta, collapse = "N")
+
+## ---- Prepare target RNA sequence
+target <- clean_pasted_seq(target_raw)
+target_sequence_total_length <- nchar(target)
+
+## ---- Extract candidate probes into a dataframe
+candidate_probes <- generate_candidate_probes(target_seq   = target,
+                                              oligo_length = 52)
+## ---- Inspect
+inspect_probe_prep(candidate_probes)
+
+```
+
+
+## Calculate thermodynamic and sequence composition parameters for candidate probes 
+
+```{r}
+## ---- Set the hybridisation condition
+temperature <- 37
+Na <- 0.3
+oligo_conc <- 5e-5
+
+## ---- Get thermodynamic parameters
+thermodynamics <- get_thermodynamic_parameters(candidate_probes, temperature, Na, oligo_conc)
+
+## ---- Annotate candidate sequences 
+candidate_probes_annotated <- annotate_probes(candidate_probes, thermodynamics)
+
+## ---- Generate exploratory plots
+c("Tm", "dG", "GC_content") %>% generate_exploratory_plots()
+
+```
+
+## Filter based on thermodynamics / base composition parameters 
+
+Default parameters: 
+target_dG <- -60
+target_dG_halves <- -32
+dG_range <- c(-75, -50)
+Tm_range <- c(10, 100)
+GC_range <- c(0.4, 0.7)
+pass_a_comp       <- FALSE
+pass_c_comp       <- FALSE
+pass_a_stack      <- TRUE
+pass_c_stack      <- TRUE
+pass_c_spec_stack <- TRUE
+
+```{r}
+## ---- Set filtering parameters
+target_dG <- -60
+target_dG_halves <- -32
+dG_range <- c(-75, -50)
+Tm_range <- c(30, 90)
+GC_range <- c(0.4, 0.7)
+pass_a_comp       <- FALSE
+pass_c_comp       <- FALSE
+pass_a_stack      <- TRUE
+pass_c_stack      <- TRUE
+pass_c_spec_stack <- TRUE
+
+## ---- Filter based on thermodynamic/nucleotide compositions
+candidate_probes_filtered <- filter_candidate_probes(candidate_probes_annotated)
+
+## ---- Inspect filtered probes
+plot_inspection(candidate_probes_filtered, "Tm")
+
+```
+
+
+## BLAST screen
+
+BLAST screen with short blastn mode.
+RMBLAST or Bowtie1? Instead of bowtie2?
+
+```{r}
+## ---- Set params
+blast_file <- "~/Documents/Data/BLAST/Hsap/Hsap_ens99_from-MK.fa"
+tx2gene_csv <- "~/Documents/Github/HCRv3_probe_design_personal/data/Hsap_tx2gene_ENSEMBL_v99.csv" # To convert tx_id to gene_id
+allowOverlapBreakRegion <- TRUE # Allow overlap over the 25/25 break region?
+
+## ---- BLAST nucleotide
+blast_output <- run_blastn_short(df = candidate_probes_filtered, db = blast_file, tx2gene = tx2gene_csv)
+blast_summary <- summarise_blast_output(blast_output, allowOverlapBreakRegion)
+
+ggplot(blast_summary, aes(n_matches)) + geom_histogram(binwidth = 1)
+
+## ---- Screen candidate probes
+max_blast_matches <- 3  # Max number of BLAST hits
+
+blast_screened <- screen_with_blast_summary(candidate_probes_filtered, max_blast_matches, blast_summary)
+candidate_probes_screened <- blast_screened[[1]]
+merge_df <- blast_screened[[2]]
+
+## ---- Inspect BLAST screened probes
+plot_inspection(candidate_probes_screened, "Tm") +
+  geom_linerange(data = merge_df, 
+      aes(x = "", ymin = start, ymax = end),
+      colour = "gray40", size = 2,
+      inherit.aes = FALSE)
+
+```
+
+## Specific blast
+
+```{r}
+run_blastn_short_specific <- function(df, db, cores = n_threads){
+  candidates <- df
+  seqs <- DNAStringSet(candidates$target_sequence)
+  names(seqs) <- candidates$unique_id
+  
+  temp_fasta_path <- file.path(tempdir(), "query.fasta")
+  Biostrings::writeXStringSet(seqs, temp_fasta_path, format = "fasta")
+  
+  blast_output <- blast_nucleotide_to_nucleotide(
+    query = temp_fasta_path,
+    subject = db,
+    evalue = 10,
+    task = "blastn-short",
+    cores = cores,
+    strand = "plus",
+    output.path = tempdir()
+  )
+  
+  return(blast_output)
+}
+
+specific_blast <- run_blastn_short_specific(
+  df = candidate_probes_screened, 
+  db = "./probe_design/input/ZsGreen_mCherry_pos-neg.fa")
+
+specific_blast_potential_hits <- specific_blast %>%
+  filter(subject_id != target_name) %>%
+  filter(num_ident_matches >= 10) %>%
+  pull(query_id) %>%
+  unique()
+
+candidate_probes_screened <- candidate_probes_screened %>%
+  filter(!(unique_id %in% specific_blast_potential_hits))
+
+plot_inspection(candidate_probes_screened, "Tm") +
+  geom_linerange(data = merge_df, 
+      aes(x = "", ymin = start, ymax = end),
+      colour = "gray40", size = 2,
+      inherit.aes = FALSE)
+
+```
+
+## (Option 1) Distribute and select probes (ZsGreen_neg)
+
+Greedy algorithm because of RAM requirement when there are too many overlapping probes
+
+```{r}
+## ---- Set params
+probe_spacing <- 4
+
+## ---- Greedy algorithm 
+### Add probe spacing to the end and sort by end coordinates
+greedy_df <- candidate_probes_screened %>%
+  mutate(end = end + probe_spacing) %>%
+  arrange(end)
+
+### While loop
+df <- greedy_df
+nonoverlapping_probes <- c()
+while (nrow(df) > 0){
+  probe_slice <- slice_head(df, n = 1) 
+  probe_id <- pull(probe_slice, unique_id)
+  probe_end <- pull(probe_slice, end)
+  nonoverlapping_probes <- c(nonoverlapping_probes, probe_id)
+  df <- filter(df, start > probe_end)
+}
+
+candidate_probes_final <- candidate_probes_screened %>%
+  filter(unique_id %in% nonoverlapping_probes)
+
+plot_inspection(candidate_probes_final, "Tm") +
+  geom_linerange(data = merge_df, 
+      aes(x = "", ymin = start, ymax = end),
+      colour = "gray40", size = 2,
+      inherit.aes = FALSE) + theme_bw()
+
+```
+
+
+## (Option 2) Distribute and select probes
+
+```{r}
+## ---- Set params
+probe_spacing <- 3
+
+## ---- Get final non-overlapping screened candidate probes 
+candidate_probes_final <- distribute_overlapping_probes(candidate_probes_screened, merge_df, probe_spacing)
+
+## ---- Inspect
+plot_inspection(candidate_probes_final, "Tm") +
+  geom_linerange(data = merge_df, 
+      aes(x = "", ymin = start, ymax = end),
+      colour = "gray40", size = 2,
+      inherit.aes = FALSE) + theme_bw()
+
+```
+
+
+## Attach HCR-B initiator sequences 
+
+Attach HCR B1/B2/B3/B4/B5 split initiator sequences to selected probe sequences (rev-com'ed)
+ - Initiator b is added 3' end of First half (5') sequence
+ - Initiator a is added 5' end of Second half (3') sequence
+
+```{r}
+## ---- Choose hairpin for multiplexing
+b_identifier <- "B3"
+
+## ---- Attach hairpin sequences and save 
+probe_details <- attach_hcr_initiatior(candidate_probes_final, b_identifier = b_identifier)
+probes <- get_final_probe_sequences(probe_details)
+
+```
+
+## Save probe sequences and some other outputs
+
+```{r}
+## ---- Create output directory
+output_dir <- paste0("./probe_design/output_HCR/", Sys.Date(), "_", target_name, "_", "HCR", b_identifier, "/")
+if(!dir.exists(output_dir)){dir.create(output_dir)}
+
+## ---- Export outputs 
+export_outputs(output_dir, probe_details, probes, blast_output)
+
+## ---- A plot showing plot distribution along target RNA sequence
+plot_final_probes(probe_details, "Tm")
+ggsave(paste0(output_dir, target_name, "_", "HCR", b_identifier, "_probes.pdf"), 
+       width = 7, height = 4)
+  
+```
+
+
+## Combine HCR probes into one file
+
+```{r}
+outputs <- list.files("./probe_design/output_HCR", full.names = TRUE, pattern = "*_probes.csv", recursive = TRUE) %>% rev()
+outputs_combined <- outputs %>%
+  map_dfr(~ read_csv(.x))
+
+write_csv(outputs_combined, "./probe_design/20230304_HCR-probes_ZsGreen_mCherry.csv")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
