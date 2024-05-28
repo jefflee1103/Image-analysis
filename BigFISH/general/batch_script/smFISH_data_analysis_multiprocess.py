@@ -1,4 +1,4 @@
-# Modified: 2023.03.07
+# Modified: 2024.05.28
 
 import pathlib
 import glob
@@ -11,6 +11,7 @@ import yaml
 import scipy
 from skimage.morphology import white_tophat, black_tophat, disk
 import numpy as np
+import pandas as pd
 import tifffile
 import bigfish.stack as stack
 import bigfish.multistack as multistack 
@@ -232,6 +233,17 @@ def image_processing_function(image_loc, config):
         )
         np.savez(str(npz_output_path), spots_post_clustering = spots_post_clustering, clusters = clusters)
 
+        # save pandas df of spots_post_clustering for quick output not requiring npz handling
+        df_output_path = pathlib.Path(config["output_dir"]).joinpath(
+            f"{image_name}_ch{image_channel}_bfoutput_dataframe.csv"
+        )
+        
+        spots_post_clustering_df = pd.DataFrame(
+            data = spots_post_clustering[0:],
+            columns = ["z", "y", "x", "cluster_index"]
+        )
+
+        spots_post_clustering_df.to_csv(df_output_path, index = False)
 
 
 def worker_function(jobs, results):
