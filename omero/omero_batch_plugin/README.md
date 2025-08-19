@@ -19,10 +19,12 @@ Note that the actual computation is done on the your local machine, not on the O
 1. Open FIJI and go to `Plugins > OMERO > Batch process ...`. 
 2. Initiate a connection to your OMERO server by clicking the "Connect" button.
 
+```
     Host: omerodavisvm.mvls.gla.ac.uk
     Port: 4064
     User: <your guid>
     Password: <your omero password>
+```
 
 3. Set `Source: Where to get images to analyse:` to `OMERO`, and select your `Project` and `Dataset`.
 4. Browse `.ijm` macro file for usage and select outputs.
